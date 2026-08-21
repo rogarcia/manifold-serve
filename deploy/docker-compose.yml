@@ -1,0 +1,47 @@
+# Two vLLM replicas sharing one GPU, for router experiments on a single rented box.
+# Each replica gets ~45% of GPU memory; use a small model (7B AWQ or a 1.5-3B model
+# works comfortably on a 24GB card).
+#
+#   docker compose -f deploy/docker-compose.yml up -d
+#
+# Then point the router at http://localhost:8001,http://localhost:8002
+
+services:
+  vllm-0:
+    image: vllm/vllm-openai:latest
+    command: >
+      --model Qwen/Qwen2.5-7B-Instruct-AWQ
+      --gpu-memory-utilization 0.45
+      --max-model-len 8192
+      --enable-prefix-caching
+    ports: ["8001:8000"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+
+  vllm-1:
+    image: vllm/vllm-openai:latest
+    command: >
+      --model Qwen/Qwen2.5-7B-Instruct-AWQ
+      --gpu-memory-utilization 0.45
+      --max-model-len 8192
+      --enable-prefix-caching
+    ports: ["8002:8000"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+
+volumes:
+  hf-cache:
