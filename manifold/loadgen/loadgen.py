@@ -12,7 +12,7 @@ Design choices that matter for honest benchmarks:
 
 Usage:
     python -m manifold.loadgen --base-url http://localhost:8000 \
-        --model Qwen/Qwen2.5-7B-Instruct --rate 4 --duration 120 \
+        --model Inferact/Qwen3.8-27B-NVFP4 --rate 4 --duration 120 \
         --sessions 32 --out bench/results.csv
 """
 
@@ -166,7 +166,7 @@ def write_csv(results: list[Result], path: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default="http://localhost:8000")
-    parser.add_argument("--model", default="Qwen/Qwen2.5-7B-Instruct")
+    parser.add_argument("--model", default="Inferact/Qwen3.8-27B-NVFP4")
     parser.add_argument("--rate", type=float, default=2.0, help="mean arrivals per second (Poisson)")
     parser.add_argument("--duration", type=float, default=60.0, help="seconds")
     parser.add_argument("--sessions", type=int, default=16, help="concurrent multi-turn sessions")

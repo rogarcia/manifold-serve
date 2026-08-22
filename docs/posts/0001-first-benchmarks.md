@@ -4,8 +4,8 @@ _Draft template for post #1 (M0). Replace every placeholder with measured data b
 
 ## Setup
 
-- Hardware: [A10 24GB, RunPod, region]
-- Model: [Qwen2.5-7B-Instruct-AWQ], vLLM [version], `--enable-prefix-caching`
+- Hardware: [RTX 5090 32GB, RunPod secure cloud, region]
+- Model: Inferact/Qwen3.8-27B-NVFP4 (27B dense, NVFP4 weights, FP8 KV), vLLM [version], `--enable-prefix-caching --enforce-eager`
 - Load: open-loop Poisson arrivals, multi-turn chat sessions with shared prefixes
   (generator: [link to loadgen])
 

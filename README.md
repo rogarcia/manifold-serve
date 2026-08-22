@@ -38,7 +38,7 @@ Built in public. Every design decision ships with a benchmark and a writeup: see
 
 ## Roadmap
 
-- [ ] **M0**: Serve a real model (vLLM), async load generator, first published TTFT/TPOT/throughput curves
+- [ ] **M0**: Serve Qwen3.8-27B (NVFP4) with vLLM on one RTX 5090, async load generator, first published TTFT/TPOT/throughput curves
 - [ ] **M1**: Router v1 with pluggable policies; measured comparison: round-robin vs least-outstanding vs prefix-cache-aware
 - [ ] **M2**: Custom-metrics autoscaler on Kubernetes; interactive vs batch workload classes; scale-to-zero on spot GPUs
 - [ ] **M3**: Canary model deployments gated by automated evals, auto-promote/rollback
@@ -56,13 +56,13 @@ Requires one GPU host (a rented RTX 5090 or PRO 6000 works) running two vLLM rep
 docker compose -f deploy/docker-compose.yml up -d
 
 # 2. Run the router
-pip install -e .
+uv sync
 MANIFOLD_BACKENDS="http://localhost:8001,http://localhost:8002" \
 MANIFOLD_POLICY=least_outstanding \
 python -m manifold.router
 
 # 3. Drive load and measure
-python -m manifold.loadgen --base-url http://localhost:8000 \
+uv run python -m manifold.loadgen --base-url http://localhost:8000 \
   --rate 4 --duration 120 --sessions 32 --out bench/results.csv
 ```
 
