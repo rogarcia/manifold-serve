@@ -9,8 +9,7 @@
 #   --reasoning-parser     Qwen3.8 is a thinking model; parser splits <think> from content in the API
 #   --enable-prefix-caching  ON so multi-turn sessions in the loadgen actually exercise the cache
 set -euo pipefail
-export HF_HOME="${HF_HOME:-/workspace/hf}"                 # persist weights on the pod volume
-export HF_HUB_ENABLE_HF_TRANSFER=1                           # faster 18 GB download
+export HF_HOME="${HF_HOME:-/workspace/.cache/huggingface}"  # RunPod images preset this (on the volume); keep it
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True     # avoids fragmentation OOMs on 32 GB
 export VLLM_USE_FLASHINFER_SAMPLER=0                         # image may lack nvcc; native sampler is fine
 
@@ -18,6 +17,11 @@ MODEL="${MODEL:-Inferact/Qwen3.8-27B-NVFP4}"
 PORT="${PORT:-8000}"
 MAX_LEN="${MAX_LEN:-32768}"
 GPU_UTIL="${GPU_UTIL:-0.92}"
+# NVFP4 GEMM kernel. "auto" picks FlashInfer CUTLASS, which JIT-compiles with nvcc and needs CUDA >= 12.9
+# for sm_120; the RunPod cu128 image cannot build it. flashinfer_b12x is the SM120-native path; marlin is
+# the precompiled fallback (slower: dequant to BF16).
+LINEAR_BACKEND="${LINEAR_BACKEND:-flashinfer_b12x}"
+EXTRA_ARGS="${EXTRA_ARGS:-}"
 
 exec /workspace/.venv/bin/vllm serve "$MODEL" \
   --host 0.0.0.0 --port "$PORT" \
@@ -29,4 +33,5 @@ exec /workspace/.venv/bin/vllm serve "$MODEL" \
   --enable-prefix-caching \
   --reasoning-parser qwen3 \
   --enable-auto-tool-choice --tool-call-parser qwen3_coder \
-  --served-model-name qwen3.8-27b-nvfp4
+  --kernel-linear-backend "$LINEAR_BACKEND" \
+  --served-model-name qwen3.8-27b-nvfp4 $EXTRA_ARGS

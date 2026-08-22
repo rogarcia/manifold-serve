@@ -13,6 +13,8 @@ runpodctl ssh info <pod-id>          # prints the ssh command
 # on the pod:
 git clone https://github.com/rogarcia/manifold-serve /workspace/manifold-serve
 bash /workspace/manifold-serve/deploy/runpod/bootstrap.sh            # once: uv + vLLM on /workspace
+export HF_TOKEN=hf_...          # read token; anonymous downloads stall/rate-limit
+/workspace/.venv/bin/hf download Inferact/Qwen3.8-27B-NVFP4 --max-workers 8   # ~18 GB, resumable
 bash /workspace/manifold-serve/deploy/runpod/serve_qwen38_27b_nvfp4.sh 2>&1 | tee /workspace/vllm-startup.log
 # second ssh session, on the pod:
 cd /workspace/manifold-serve && uv sync
