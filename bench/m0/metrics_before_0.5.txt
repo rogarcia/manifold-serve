@@ -1,0 +1,5 @@
+vllm:num_requests_waiting{engine="0",model_name="qwen3.8-27b-nvfp4"} 0.0
+vllm:num_requests_waiting_by_reason{engine="0",model_name="qwen3.8-27b-nvfp4",reason="capacity"} 0.0
+vllm:num_requests_waiting_by_reason{engine="0",model_name="qwen3.8-27b-nvfp4",reason="deferred"} 0.0
+vllm:prefix_cache_queries_total{engine="0",model_name="qwen3.8-27b-nvfp4"} 7008.0
+vllm:prefix_cache_hits_total{engine="0",model_name="qwen3.8-27b-nvfp4"} 0.0
