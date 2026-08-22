@@ -33,5 +33,5 @@ exec /workspace/.venv/bin/vllm serve "$MODEL" \
   --enable-prefix-caching \
   --reasoning-parser qwen3 \
   --enable-auto-tool-choice --tool-call-parser qwen3_coder \
-  --kernel-linear-backend "$LINEAR_BACKEND" \
+  ${LINEAR_BACKEND:+--linear-backend $LINEAR_BACKEND} \
   --served-model-name qwen3.8-27b-nvfp4 $EXTRA_ARGS
