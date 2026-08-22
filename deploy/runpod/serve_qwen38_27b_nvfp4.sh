@@ -20,7 +20,8 @@ GPU_UTIL="${GPU_UTIL:-0.92}"
 # NVFP4 GEMM kernel. "auto" picks FlashInfer CUTLASS, which JIT-compiles with nvcc and needs CUDA >= 12.9
 # for sm_120; the RunPod cu128 image cannot build it. flashinfer_b12x is the SM120-native path; marlin is
 # the precompiled fallback (slower: dequant to BF16).
-LINEAR_BACKEND="${LINEAR_BACKEND:-flashinfer_b12x}"
+LINEAR_BACKEND="${LINEAR_BACKEND:-marlin}"   # flashinfer_b12x: option exists in 0.27.1 but the NVFP4 linear kernel does not (lands later)
+ATTN_BACKEND="${ATTN_BACKEND:-TRITON_ATTN}"   # FlashInfer attention also JIT-compiles with nvcc; same sm_120/CUDA 12.8 problem
 EXTRA_ARGS="${EXTRA_ARGS:-}"
 
 exec /workspace/.venv/bin/vllm serve "$MODEL" \
@@ -34,4 +35,5 @@ exec /workspace/.venv/bin/vllm serve "$MODEL" \
   --reasoning-parser qwen3 \
   --enable-auto-tool-choice --tool-call-parser qwen3_coder \
   ${LINEAR_BACKEND:+--linear-backend $LINEAR_BACKEND} \
+  --attention-backend "$ATTN_BACKEND" \
   --served-model-name qwen3.8-27b-nvfp4 $EXTRA_ARGS
