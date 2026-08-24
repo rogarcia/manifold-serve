@@ -19,11 +19,14 @@
 set -euo pipefail
 export HF_HOME="${HF_HOME:-/workspace/.cache/huggingface}"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+# vllm 0.26.x kernels link libcudart.so.13, shipped as the nvidia-cuda-runtime pip dep (torch itself
+# is cu129); the loader needs the path spelled out or `import vllm` dies on libcudart.so.13.
+export LD_LIBRARY_PATH="/workspace/.venv/lib/python3.12/site-packages/nvidia/cu13/lib:${LD_LIBRARY_PATH:-}"
 
 MODEL="${MODEL:-Inferact/Qwen3.8-27B-NVFP4}"
 PORT="${PORT:-8000}"
 MAX_LEN="${MAX_LEN:-32768}"        # M0 A/B row; do a second run at 262144 for the KV story
-GPU_UTIL="${GPU_UTIL:-0.92}"
+GPU_UTIL="${GPU_UTIL:-0.95}"  # 0.92 leaves 1.65 GiB KV < 1.87 GiB floor once MTP head + vision tower load; safe in eager (no graph capture outside the budget)
 LINEAR_BACKEND="${LINEAR_BACKEND:-auto}"
 MTP="${MTP:-0}"                    # 1 -> MTP-3 spec decoding (0.754 acceptance per recipe)
 EXTRA_ARGS="${EXTRA_ARGS:-}"
