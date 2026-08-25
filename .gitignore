@@ -9,4 +9,5 @@ dist/
 bench/*.csv
 .DS_Store
 .scratch
+docs/posts/
 .firecrawl/
