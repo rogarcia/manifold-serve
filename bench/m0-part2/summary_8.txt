@@ -1,0 +1,7 @@
+
+requests: 892  ok: 892  errors: 0
+TTFT ms   p50= 99558.2  p90=186116.8  p99=207432.5  mean=101576.9
+total ms  p50=105832.0  p90=192451.7  p99=214770.2  mean=108005.6
+output tok/s (stream chunks):    176.2   total output tokens: 59585
+TPOT ms   p50=    97.6  p90=   101.7  p99=   106.5
+wrote bench/m0-part2/rate_8.csv
