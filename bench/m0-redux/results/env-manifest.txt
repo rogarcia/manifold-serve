@@ -1,0 +1,6 @@
+Mon Sep 21 19:25:04 UTC 2026
+6.8.0-124-generic
+NVIDIA RTX PRO 6000 Blackwell Server Edition, 580.159.04, 97887 MiB
+/usr/local/cuda/bin/nvcc
+Cuda compilation tools, release 13.0, V13.0.88
+vllm 0.29.0 torch 2.13.0+cu130 transformers 5.17.0

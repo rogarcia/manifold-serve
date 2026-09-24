@@ -11,3 +11,6 @@ bench/*.csv
 .scratch
 docs/posts/
 .firecrawl/
+.env
+logs/
+
