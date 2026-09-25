@@ -1,0 +1,7 @@
+
+requests: 906  ok: 357  errors: 549
+TTFT ms   p50=  4584.5  p90=  6653.5  p99=  8106.6  mean=  3847.5
+total ms  p50=  6048.4  p90=  8426.5  p99=  9813.8  mean=  5331.0
+output tok/s:    147.4   total output tokens: 17394
+TPOT ms   p50=    28.9  p90=    40.5  p99=    57.9
+wrote /workspace/m0-redux/results/2026-09-24/sweep/baseline/rate_8.csv

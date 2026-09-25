@@ -1,0 +1,49 @@
+Namespace(subparser='bench', bench_type='serve', dispatch_function=<function BenchmarkServingSubcommand.cmd at 0x77cff399afc0>, trust_remote_code=False, seed=1, num_prompts=16, dataset_name='speed_bench', no_stream=False, dataset_path='/workspace/m0-redux/data/speed_bench', no_oversample=False, skip_chat_template=True, enable_multimodal_chat=False, disable_shuffle=False, custom_output_len=256, custom_ensure_client_side_data=False, spec_bench_output_len=256, spec_bench_category=None, sonnet_input_len=550, sonnet_output_len=150, sonnet_prefix_len=200, sharegpt_output_len=None, timed_trace_chunk_hash_size=16, timed_trace_sec_multiplier=1, timed_trace_label_timestamp='timestamp', timed_trace_label_input_length='input_length', timed_trace_label_output_length='output_length', timed_trace_label_hash_ids='hash_ids', blazedit_min_distance=0.0, blazedit_max_distance=1.0, asr_max_audio_len_sec=inf, asr_min_audio_len_sec=0.0, random_input_len=1024, random_output_len=128, random_range_ratio='0.0', random_prefix_len=0, random_batch_size=1, no_reranker=False, random_mm_base_items_per_request=1, random_mm_num_mm_items_range_ratio=0.0, random_mm_limit_mm_per_prompt={'image': 255, 'video': 1}, random_mm_bucket_config={(256, 256, 1): 0.5, (720, 1280, 1): 0.5, (720, 1280, 16): 0.0}, hf_subset=None, hf_split=None, hf_name=None, hf_output_len=None, bfcl_categories=None, prefix_repetition_prefix_len=256, prefix_repetition_suffix_len=256, prefix_repetition_num_prefixes=10, prefix_repetition_output_len=128, speed_bench_dataset_subset='throughput_32k', speed_bench_output_len=1024, speed_bench_category='mixed', label=None, backend='openai-chat', base_url=None, host='127.0.0.1', port=8000, endpoint='/v1/chat/completions', header=None, max_concurrency=1, model='nvidia/Qwen3.8-27B-NVFP4', input_len=None, output_len=None, tokenizer=None, tokenizer_mode='auto', use_beam_search=False, logprobs=None, request_rate=inf, burstiness=1.0, probe_request_rate=0.0, disable_tqdm=False, num_warmups=4, profile=False, save_result=True, save_detailed=False, append_result=False, metadata=['config=baseline', 'cell=long32k', 'sampling=greedy', 'thinking=off', 'max_model_len=262144', 'seed=1', 'speed_cat=mixed'], result_dir='/workspace/m0-redux/results/2026-09-24/baseline', result_filename='long32k-c1-greedy-thinkoff-s1.json', ignore_eos=False, self_timed=None, percentile_metrics='ttft,tpot,itl,e2el', metric_percentiles='50,90,99', goodput=None, request_id_prefix='bench-5f389b8c-', top_p=None, top_k=None, min_p=None, temperature=0.0, frequency_penalty=None, presence_penalty=None, repetition_penalty=None, served_model_name=None, lora_modules=None, lora_assignment='random', ramp_up_strategy=None, ramp_up_start_rps=None, ramp_up_end_rps=None, ready_check_timeout_sec=0, chat_template_kwargs=None, extra_body={'chat_template_kwargs': {'enable_thinking': False}}, skip_tokenizer_init=False, insecure=False, plot_timeline=False, timeline_itl_thresholds='25,50', plot_dataset_stats=False)
+Starting initial single prompt test run...
+Skipping endpoint ready check.
+Warming up with 4 requests...
+  0%|          | 0/4 [00:00<?, ?it/s] 25%|██▌       | 1/4 [00:19<00:59, 19.82s/it] 50%|█████     | 2/4 [00:36<00:35, 17.84s/it] 75%|███████▌  | 3/4 [00:52<00:17, 17.20s/it]100%|██████████| 4/4 [01:09<00:00, 16.90s/it]100%|██████████| 4/4 [01:09<00:00, 17.29s/it]
+Warmup run completed.
+Starting main benchmark run...
+Traffic request rate: inf
+Burstiness factor: 1.0 (Poisson process)
+Maximum request concurrency: 1
+  0%|          | 0/16 [00:00<?, ?it/s]  6%|▋         | 1/16 [00:16<04:06, 16.44s/it] 12%|█▎        | 2/16 [00:36<04:17, 18.38s/it] 19%|█▉        | 3/16 [00:55<04:06, 18.97s/it] 25%|██▌       | 4/16 [01:15<03:51, 19.27s/it] 31%|███▏      | 5/16 [01:35<03:32, 19.35s/it] 38%|███▊      | 6/16 [01:54<03:14, 19.41s/it] 44%|████▍     | 7/16 [02:08<02:39, 17.71s/it] 50%|█████     | 8/16 [02:16<01:55, 14.43s/it] 56%|█████▋    | 9/16 [02:26<01:32, 13.24s/it] 62%|██████▎   | 10/16 [02:46<01:31, 15.21s/it] 69%|██████▉   | 11/16 [03:06<01:22, 16.57s/it] 75%|███████▌  | 12/16 [03:25<01:09, 17.50s/it] 81%|████████▏ | 13/16 [03:45<00:54, 18.10s/it] 88%|████████▊ | 14/16 [04:04<00:37, 18.59s/it] 94%|█████████▍| 15/16 [04:24<00:18, 18.87s/it]100%|██████████| 16/16 [04:31<00:00, 15.30s/it]100%|██████████| 16/16 [04:31<00:00, 16.97s/it]
+tip: install termplotlib and gnuplot to plot the metrics
+============ Serving Benchmark Result ============
+Successful requests:                     16        
+Failed requests:                         0         
+Maximum request concurrency:             1         
+Benchmark duration (s):                  271.47    
+Total input tokens:                      536925    
+Total generated tokens:                  13917     
+Request throughput (req/s):              0.06      
+Output token throughput (tok/s):         51.26     
+Peak output token throughput (tok/s):    63.00     
+Peak concurrent requests:                2.00      
+Total token throughput (tok/s):          2029.09   
+---------------Time to First Token----------------
+Mean TTFT (ms):                          3100.20   
+Median TTFT (ms):                        3308.57   
+P50 TTFT (ms):                           3308.57   
+P90 TTFT (ms):                           3388.32   
+P99 TTFT (ms):                           3396.19   
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          15.96     
+Median TPOT (ms):                        15.96     
+P50 TPOT (ms):                           15.96     
+P90 TPOT (ms):                           15.98     
+P99 TPOT (ms):                           15.98     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           15.93     
+Median ITL (ms):                         15.96     
+P50 ITL (ms):                            15.96     
+P90 ITL (ms):                            16.23     
+P99 ITL (ms):                            16.38     
+----------------End-to-end Latency----------------
+Mean E2EL (ms):                          16966.67  
+Median E2EL (ms):                        19519.60  
+P50 E2EL (ms):                           19519.60  
+P90 E2EL (ms):                           19730.89  
+P99 E2EL (ms):                           19742.81  
+==================================================

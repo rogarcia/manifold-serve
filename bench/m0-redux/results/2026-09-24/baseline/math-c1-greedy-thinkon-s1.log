@@ -1,0 +1,49 @@
+Namespace(subparser='bench', bench_type='serve', dispatch_function=<function BenchmarkServingSubcommand.cmd at 0x7546797cefc0>, trust_remote_code=False, seed=1, num_prompts=40, dataset_name='hf', no_stream=False, dataset_path='openai/gsm8k', no_oversample=False, skip_chat_template=True, enable_multimodal_chat=False, disable_shuffle=False, custom_output_len=256, custom_ensure_client_side_data=False, spec_bench_output_len=256, spec_bench_category=None, sonnet_input_len=550, sonnet_output_len=150, sonnet_prefix_len=200, sharegpt_output_len=None, timed_trace_chunk_hash_size=16, timed_trace_sec_multiplier=1, timed_trace_label_timestamp='timestamp', timed_trace_label_input_length='input_length', timed_trace_label_output_length='output_length', timed_trace_label_hash_ids='hash_ids', blazedit_min_distance=0.0, blazedit_max_distance=1.0, asr_max_audio_len_sec=inf, asr_min_audio_len_sec=0.0, random_input_len=1024, random_output_len=128, random_range_ratio='0.0', random_prefix_len=0, random_batch_size=1, no_reranker=False, random_mm_base_items_per_request=1, random_mm_num_mm_items_range_ratio=0.0, random_mm_limit_mm_per_prompt={'image': 255, 'video': 1}, random_mm_bucket_config={(256, 256, 1): 0.5, (720, 1280, 1): 0.5, (720, 1280, 16): 0.0}, hf_subset='main', hf_split='test', hf_name=None, hf_output_len=4096, bfcl_categories=None, prefix_repetition_prefix_len=256, prefix_repetition_suffix_len=256, prefix_repetition_num_prefixes=10, prefix_repetition_output_len=128, speed_bench_dataset_subset='qualitative', speed_bench_output_len=4096, speed_bench_category=None, label=None, backend='openai-chat', base_url=None, host='127.0.0.1', port=8000, endpoint='/v1/chat/completions', header=None, max_concurrency=1, model='nvidia/Qwen3.8-27B-NVFP4', input_len=None, output_len=None, tokenizer=None, tokenizer_mode='auto', use_beam_search=False, logprobs=None, request_rate=inf, burstiness=1.0, probe_request_rate=0.0, disable_tqdm=False, num_warmups=4, profile=False, save_result=True, save_detailed=False, append_result=False, metadata=['config=baseline', 'cell=math', 'sampling=greedy', 'thinking=on', 'max_model_len=262144', 'seed=1'], result_dir='/workspace/m0-redux/results/2026-09-24/baseline', result_filename='math-c1-greedy-thinkon-s1.json', ignore_eos=False, self_timed=None, percentile_metrics='ttft,tpot,itl,e2el', metric_percentiles='50,90,99', goodput=None, request_id_prefix='bench-5b4b5b41-', top_p=None, top_k=None, min_p=None, temperature=0.0, frequency_penalty=None, presence_penalty=None, repetition_penalty=None, served_model_name=None, lora_modules=None, lora_assignment='random', ramp_up_strategy=None, ramp_up_start_rps=None, ramp_up_end_rps=None, ready_check_timeout_sec=0, chat_template_kwargs=None, extra_body={'chat_template_kwargs': {'enable_thinking': True}}, skip_tokenizer_init=False, insecure=False, plot_timeline=False, timeline_itl_thresholds='25,50', plot_dataset_stats=False)
+Starting initial single prompt test run...
+Skipping endpoint ready check.
+Warming up with 4 requests...
+  0%|          | 0/4 [00:00<?, ?it/s] 25%|██▌       | 1/4 [00:05<00:16,  5.49s/it] 50%|█████     | 2/4 [00:10<00:10,  5.49s/it] 75%|███████▌  | 3/4 [00:16<00:05,  5.49s/it]100%|██████████| 4/4 [00:21<00:00,  5.49s/it]100%|██████████| 4/4 [00:21<00:00,  5.49s/it]
+Warmup run completed.
+Starting main benchmark run...
+Traffic request rate: inf
+Burstiness factor: 1.0 (Poisson process)
+Maximum request concurrency: 1
+  0%|          | 0/40 [00:00<?, ?it/s]  2%|▎         | 1/40 [00:05<03:33,  5.49s/it]  5%|▌         | 2/40 [00:07<02:20,  3.70s/it]  8%|▊         | 3/40 [00:09<01:41,  2.73s/it] 10%|█         | 4/40 [00:14<02:06,  3.52s/it] 12%|█▎        | 5/40 [00:16<01:45,  3.02s/it] 15%|█▌        | 6/40 [00:20<02:01,  3.56s/it] 18%|█▊        | 7/40 [00:23<01:44,  3.15s/it] 20%|██        | 8/40 [00:27<01:55,  3.60s/it] 22%|██▎       | 9/40 [00:33<02:09,  4.17s/it] 25%|██▌       | 10/40 [00:35<01:46,  3.54s/it] 28%|██▊       | 11/40 [00:36<01:24,  2.90s/it] 30%|███       | 12/40 [01:23<07:29, 16.06s/it] 32%|███▎      | 13/40 [01:28<05:44, 12.77s/it] 35%|███▌      | 14/40 [01:34<04:41, 10.83s/it] 38%|███▊      | 15/40 [01:37<03:28,  8.32s/it] 40%|████      | 16/40 [01:49<03:48,  9.51s/it] 42%|████▎     | 17/40 [01:52<02:51,  7.46s/it] 45%|████▌     | 18/40 [02:00<02:50,  7.74s/it] 48%|████▊     | 19/40 [03:03<08:31, 24.37s/it] 50%|█████     | 20/40 [03:06<05:55, 17.80s/it] 52%|█████▎    | 21/40 [03:08<04:09, 13.14s/it] 55%|█████▌    | 22/40 [03:12<03:06, 10.38s/it] 57%|█████▊    | 23/40 [03:20<02:43,  9.61s/it] 60%|██████    | 24/40 [03:21<01:55,  7.24s/it] 62%|██████▎   | 25/40 [03:23<01:21,  5.46s/it] 65%|██████▌   | 26/40 [03:23<00:56,  4.05s/it] 68%|██████▊   | 27/40 [03:26<00:48,  3.75s/it] 70%|███████   | 28/40 [03:29<00:39,  3.29s/it] 72%|███████▎  | 29/40 [03:31<00:34,  3.14s/it] 75%|███████▌  | 30/40 [03:39<00:44,  4.49s/it] 78%|███████▊  | 31/40 [03:43<00:40,  4.46s/it] 80%|████████  | 32/40 [03:47<00:32,  4.12s/it] 82%|████████▎ | 33/40 [03:54<00:35,  5.06s/it] 85%|████████▌ | 34/40 [03:55<00:23,  3.94s/it] 88%|████████▊ | 35/40 [04:01<00:21,  4.34s/it] 90%|█████████ | 36/40 [04:06<00:18,  4.67s/it] 92%|█████████▎| 37/40 [04:10<00:13,  4.57s/it] 95%|█████████▌| 38/40 [04:17<00:10,  5.11s/it] 98%|█████████▊| 39/40 [04:19<00:04,  4.16s/it]100%|██████████| 40/40 [04:20<00:00,  3.42s/it]100%|██████████| 40/40 [04:20<00:00,  6.52s/it]
+tip: install termplotlib and gnuplot to plot the metrics
+============ Serving Benchmark Result ============
+Successful requests:                     40        
+Failed requests:                         0         
+Maximum request concurrency:             1         
+Benchmark duration (s):                  260.92    
+Total input tokens:                      4633      
+Total generated tokens:                  16694     
+Request throughput (req/s):              0.15      
+Output token throughput (tok/s):         63.98     
+Peak output token throughput (tok/s):    66.00     
+Peak concurrent requests:                3.00      
+Total token throughput (tok/s):          81.74     
+---------------Time to First Token----------------
+Mean TTFT (ms):                          100.41    
+Median TTFT (ms):                        100.72    
+P50 TTFT (ms):                           100.72    
+P90 TTFT (ms):                           102.84    
+P99 TTFT (ms):                           103.44    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          15.44     
+Median TPOT (ms):                        15.44     
+P50 TPOT (ms):                           15.44     
+P90 TPOT (ms):                           15.48     
+P99 TPOT (ms):                           15.52     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           15.42     
+Median ITL (ms):                         15.43     
+P50 ITL (ms):                            15.43     
+P90 ITL (ms):                            15.72     
+P99 ITL (ms):                            15.93     
+----------------End-to-end Latency----------------
+Mean E2EL (ms):                          6522.63   
+Median E2EL (ms):                        3624.43   
+P50 E2EL (ms):                           3624.43   
+P90 E2EL (ms):                           7877.03   
+P99 E2EL (ms):                           56477.74  
+==================================================

@@ -1,0 +1,61 @@
+Namespace(subparser='bench', bench_type='serve', dispatch_function=<function BenchmarkServingSubcommand.cmd at 0x7f01cc516fc0>, trust_remote_code=False, seed=1, num_prompts=16, dataset_name='speed_bench', no_stream=False, dataset_path='/workspace/m0-redux/data/speed_bench', no_oversample=False, skip_chat_template=True, enable_multimodal_chat=False, disable_shuffle=False, custom_output_len=256, custom_ensure_client_side_data=False, spec_bench_output_len=256, spec_bench_category=None, sonnet_input_len=550, sonnet_output_len=150, sonnet_prefix_len=200, sharegpt_output_len=None, timed_trace_chunk_hash_size=16, timed_trace_sec_multiplier=1, timed_trace_label_timestamp='timestamp', timed_trace_label_input_length='input_length', timed_trace_label_output_length='output_length', timed_trace_label_hash_ids='hash_ids', blazedit_min_distance=0.0, blazedit_max_distance=1.0, asr_max_audio_len_sec=inf, asr_min_audio_len_sec=0.0, random_input_len=1024, random_output_len=128, random_range_ratio='0.0', random_prefix_len=0, random_batch_size=1, no_reranker=False, random_mm_base_items_per_request=1, random_mm_num_mm_items_range_ratio=0.0, random_mm_limit_mm_per_prompt={'image': 255, 'video': 1}, random_mm_bucket_config={(256, 256, 1): 0.5, (720, 1280, 1): 0.5, (720, 1280, 16): 0.0}, hf_subset=None, hf_split=None, hf_name=None, hf_output_len=None, bfcl_categories=None, prefix_repetition_prefix_len=256, prefix_repetition_suffix_len=256, prefix_repetition_num_prefixes=10, prefix_repetition_output_len=128, speed_bench_dataset_subset='throughput_1k', speed_bench_output_len=1024, speed_bench_category='mixed', label=None, backend='openai-chat', base_url=None, host='127.0.0.1', port=8000, endpoint='/v1/chat/completions', header=None, max_concurrency=1, model='nvidia/Qwen3.8-27B-NVFP4', input_len=None, output_len=None, tokenizer=None, tokenizer_mode='auto', use_beam_search=False, logprobs=None, request_rate=inf, burstiness=1.0, probe_request_rate=0.0, disable_tqdm=False, num_warmups=4, profile=False, save_result=True, save_detailed=False, append_result=False, metadata=['config=mtp-k5', 'cell=long1k', 'sampling=greedy', 'thinking=off', 'max_model_len=262144', 'seed=1', 'speed_cat=mixed'], result_dir='/workspace/m0-redux/results/2026-09-24/mtp-k5', result_filename='long1k-c1-greedy-thinkoff-s1.json', ignore_eos=False, self_timed=None, percentile_metrics='ttft,tpot,itl,e2el', metric_percentiles='50,90,99', goodput=None, request_id_prefix='bench-9e0de1d0-', top_p=None, top_k=None, min_p=None, temperature=0.0, frequency_penalty=None, presence_penalty=None, repetition_penalty=None, served_model_name=None, lora_modules=None, lora_assignment='random', ramp_up_strategy=None, ramp_up_start_rps=None, ramp_up_end_rps=None, ready_check_timeout_sec=0, chat_template_kwargs=None, extra_body={'chat_template_kwargs': {'enable_thinking': False}}, skip_tokenizer_init=False, insecure=False, plot_timeline=False, timeline_itl_thresholds='25,50', plot_dataset_stats=False)
+Starting initial single prompt test run...
+Skipping endpoint ready check.
+Warming up with 4 requests...
+  0%|          | 0/4 [00:00<?, ?it/s] 25%|██▌       | 1/4 [00:01<00:03,  1.11s/it] 50%|█████     | 2/4 [00:02<00:02,  1.11s/it] 75%|███████▌  | 3/4 [00:03<00:01,  1.11s/it]100%|██████████| 4/4 [00:04<00:00,  1.11s/it]100%|██████████| 4/4 [00:04<00:00,  1.11s/it]
+Warmup run completed.
+Starting main benchmark run...
+Traffic request rate: inf
+Burstiness factor: 1.0 (Poisson process)
+Maximum request concurrency: 1
+  0%|          | 0/16 [00:00<?, ?it/s]  6%|▋         | 1/16 [00:01<00:16,  1.11s/it] 12%|█▎        | 2/16 [00:02<00:17,  1.23s/it] 19%|█▉        | 3/16 [00:07<00:40,  3.10s/it] 25%|██▌       | 4/16 [00:09<00:32,  2.72s/it] 31%|███▏      | 5/16 [00:16<00:44,  4.04s/it] 38%|███▊      | 6/16 [00:17<00:31,  3.11s/it] 44%|████▍     | 7/16 [00:20<00:27,  3.08s/it] 50%|█████     | 8/16 [00:21<00:20,  2.54s/it] 56%|█████▋    | 9/16 [00:23<00:16,  2.34s/it] 62%|██████▎   | 10/16 [00:25<00:11,  1.99s/it] 69%|██████▉   | 11/16 [00:30<00:14,  2.91s/it] 75%|███████▌  | 12/16 [00:36<00:15,  3.88s/it] 81%|████████▏ | 13/16 [00:41<00:13,  4.46s/it] 88%|████████▊ | 14/16 [00:47<00:09,  4.74s/it] 94%|█████████▍| 15/16 [00:52<00:04,  4.88s/it]100%|██████████| 16/16 [00:54<00:00,  3.86s/it]100%|██████████| 16/16 [00:54<00:00,  3.38s/it]
+tip: install termplotlib and gnuplot to plot the metrics
+============ Serving Benchmark Result ============
+Successful requests:                     16        
+Failed requests:                         0         
+Maximum request concurrency:             1         
+Benchmark duration (s):                  54.04     
+Total input tokens:                      17359     
+Total generated tokens:                  9259      
+Request throughput (req/s):              0.30      
+Output token throughput (tok/s):         171.32    
+Peak output token throughput (tok/s):    46.00     
+Peak concurrent requests:                2.00      
+Total token throughput (tok/s):          492.53    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          108.86    
+Median TTFT (ms):                        111.05    
+P50 TTFT (ms):                           111.05    
+P90 TTFT (ms):                           113.48    
+P99 TTFT (ms):                           114.94    
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          6.11      
+Median TPOT (ms):                        6.06      
+P50 TPOT (ms):                           6.06      
+P90 TPOT (ms):                           7.35      
+P99 TPOT (ms):                           7.70      
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           21.89     
+Median ITL (ms):                         22.16     
+P50 ITL (ms):                            22.16     
+P90 ITL (ms):                            22.36     
+P99 ITL (ms):                            22.63     
+----------------End-to-end Latency----------------
+Mean E2EL (ms):                          3377.40   
+Median E2EL (ms):                        2570.13   
+P50 E2EL (ms):                           2570.13   
+P90 E2EL (ms):                           5939.44   
+P99 E2EL (ms):                           6351.84   
+---------------Speculative Decoding---------------
+Acceptance rate (%):                     58.69     
+Acceptance length:                       3.93      
+Drafts:                                  2359      
+Draft tokens:                            11795     
+Accepted tokens:                         6922      
+Per-position acceptance (%):
+  Position 0:                            86.69     
+  Position 1:                            70.50     
+  Position 2:                            56.30     
+  Position 3:                            45.10     
+  Position 4:                            34.85     
+==================================================

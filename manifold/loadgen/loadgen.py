@@ -9,6 +9,8 @@ Design choices that matter for honest benchmarks:
   share a growing prefix, which is what real chat traffic looks like and what makes
   prefix-cache-aware routing measurable at the router tier.
 - TTFT measured at first SSE chunk, per request; results dumped to CSV for analysis.
+- Output tokens come from the server's usage report (stream_options.include_usage), not
+  from counting SSE chunks: under speculative decoding one chunk carries several tokens.
 
 Usage:
     python -m manifold.loadgen --base-url http://localhost:8000 \
@@ -70,6 +72,7 @@ class Result:
     total_ms: float
     output_chars: int
     output_tokens: int
+    output_chunks: int
     status: int
     backend: str
 
@@ -85,7 +88,10 @@ async def one_request(
     disable_thinking: bool = False,
 ) -> None:
     messages = session.next_messages(turn)
-    payload: dict = {"model": model, "messages": messages, "stream": True, "max_tokens": max_tokens}
+    payload: dict = {
+        "model": model, "messages": messages, "stream": True, "max_tokens": max_tokens,
+        "stream_options": {"include_usage": True},
+    }
     if disable_thinking:
         # Qwen3.x thinking models emit <think> first; for latency benchmarks measure answer tokens.
         payload["chat_template_kwargs"] = {"enable_thinking": False}
@@ -93,6 +99,7 @@ async def one_request(
     ttft = None
     text_parts: list[str] = []
     n_chunks = 0
+    usage_tokens = None
     status = 0
     backend = ""
     try:
@@ -106,7 +113,12 @@ async def one_request(
                 if data == "[DONE]":
                     break
                 try:
-                    delta = json.loads(data)["choices"][0]["delta"].get("content") or ""
+                    chunk = json.loads(data)
+                    if chunk.get("usage"):
+                        usage_tokens = chunk["usage"].get("completion_tokens")
+                    if not chunk.get("choices"):
+                        continue
+                    delta = chunk["choices"][0]["delta"].get("content") or ""
                     if delta and ttft is None:
                         ttft = (time.perf_counter() - start) * 1000
                     if delta:
@@ -120,7 +132,10 @@ async def one_request(
     reply = "".join(text_parts)
     session.record_reply(reply)
     results.append(
-        Result(session.session_id, turn, start, ttft, total_ms, len(reply), n_chunks, status, backend)
+        Result(
+            session.session_id, turn, start, ttft, total_ms, len(reply),
+            usage_tokens if usage_tokens is not None else n_chunks, n_chunks, status, backend,
+        )
     )
 
 
@@ -169,7 +184,7 @@ def summarize(results: list[Result]) -> None:
     span = max(r.start + r.total_ms / 1000 for r in ok) - min(r.start for r in ok)
     tokens = sum(r.output_tokens for r in ok)
     if span > 0:
-        print(f"output tok/s (stream chunks): {tokens / span:8.1f}   total output tokens: {tokens}")
+        print(f"output tok/s: {tokens / span:8.1f}   total output tokens: {tokens}")
     decode = [
         (r.total_ms - r.ttft_ms) / (r.output_tokens - 1)
         for r in ok
@@ -193,12 +208,12 @@ def write_csv(results: list[Result], path: str) -> None:
         writer = csv.writer(f)
         writer.writerow(
             ["session_id", "turn", "start", "ttft_ms", "total_ms", "output_chars",
-             "output_tokens", "status", "backend"]
+             "output_tokens", "output_chunks", "status", "backend"]
         )
         for r in results:
             writer.writerow(
                 [r.session_id, r.turn, f"{r.start:.6f}", r.ttft_ms, f"{r.total_ms:.1f}",
-                 r.output_chars, r.output_tokens, r.status, r.backend]
+                 r.output_chars, r.output_tokens, r.output_chunks, r.status, r.backend]
             )
     print(f"wrote {path}")
 

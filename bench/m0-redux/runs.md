@@ -6,6 +6,10 @@ part2's MTP result (28 tok/s, 37.6% acceptance) came from a server squeezed into
 `--enforce-eager`. Here the recipe command runs unmodified on a 96 GB card, the load generator is
 `vllm bench serve` with real-text datasets, and the only variable is `--speculative-config`.
 
+**Follow-up (2026-09-24):** repeats, sampling, thinking on, TRITON_ATTN, more categories, long
+input and the TTFT explanation are in `runs-2026-09-24.md`. Two findings there revise this file:
+the chat TTFT gap is a CUDA-graph capture-size effect, and absolute numbers differ between pods.
+
 Scope actually run: code (InstructCoder) and chat (mt-bench), greedy, thinking off.
 Not run: math, summarize/translate/RAG, long-context buckets, sampling T=0.7, thinking on,
 repeats. `bench.sh` defines most of those cells already.
@@ -154,6 +158,7 @@ is never a constraint. Engine init: 487 s on the first start, 140–170 s afterw
 
 - Single run per cell, no variance estimate. Differences of a few percent (code k=5 vs k=7 at
   c=8) are within what a repeat could reverse.
+- (Explained 2026-09-24: CUDA-graph capture sizes, see `runs-2026-09-24.md` finding 8.)
 - Unexplained: chat c=1 TTFT p50 is 170 ms on baseline and ~110 ms on all MTP configs. Not prefix
   caching (first chat cell on each server). Code TTFT shows no such gap. Needs a repeat.
 - Output lengths differ by up to ~2% between configs (no `--ignore-eos`), so compare tok/s and
@@ -181,6 +186,8 @@ is never a constraint. Engine init: 487 s on the first start, 140–170 s afterw
 - `results/env-manifest.txt`, `results/pip-freeze.txt`
 - `charts.py` — `uv run bench/m0-redux/charts.py` renders `charts/*.{svg,png}` from the result JSONs: speedup_vs_k, throughput_by_k, acceptance_vs_speedup, acceptance_by_position, tpot_tail, kv_pool_cost
 - `logs/serve-*.log` — full server log per start; `logs/run-*.log` — driver logs
+- 2026-09-24 additions: `run-deferred.sh`, `run-triton.sh`, `run-categories.sh`, `run-long.sh`,
+  `run-sweep.sh` (drivers); `probe-ttft.py`, `ttft-test.py` (TTFT); results in `results/2026-09-24/`
 
 ## Reproduce
 
