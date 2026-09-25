@@ -201,6 +201,14 @@ ssh ... "tmux new -d -s matrix '/workspace/m0-redux/scripts/run-code.sh 2>&1 | t
 runpodctl pod delete <pod-id>
 ```
 
+`env.sh` is sourced inside each script, so its variables exist only in that script's process.
+In an interactive SSH shell on the pod, run `source /workspace/m0-redux/scripts/env.sh` first.
+
+If `uv pip install` fails with `Stale file handle (os error 116)` under `/workspace/.venv`, the
+volume is network-backed. `bootstrap.sh` retries the install up to 5 times and prints the
+`/workspace` filesystem type; if the retries run out, rerun `push.sh ... --bootstrap` or rent
+the pod with a pod-local volume.
+
 HF token, either way: `HF_TOKEN=...` in `.env` (copied by `push.sh`, mode 600), or on the pod
 `HF_HOME=/workspace/hf hf auth login`. The 2026-09-21 run used the second. Nothing here is
 gated; anonymous downloads work, with lower rate limits.

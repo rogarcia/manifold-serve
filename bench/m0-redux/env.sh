@@ -7,6 +7,8 @@ export HF_HOME=$WORKSPACE/hf
 export PATH="$VENV/bin:$HOME/.local/bin:/usr/local/cuda/bin:$PATH"
 export LD_LIBRARY_PATH="$VENV/lib/python3.12/site-packages/nvidia/cu13/lib:${LD_LIBRARY_PATH:-}"
 export VLLM_USE_RUST_FRONTEND=1
+# uv's cache is on container disk and the venv on /workspace, so hardlinks always fail; copy directly.
+export UV_LINK_MODE=copy
 
 # Optional secrets (HF_TOKEN=...). Not versioned; see .env.example.
 # `hf auth login` with HF_HOME set works too: it stores the token at $HF_HOME/token.

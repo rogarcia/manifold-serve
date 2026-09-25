@@ -19,18 +19,31 @@ nvcc --version | grep -E 'release 13\.' \
 command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 [ -d "$VENV" ] || uv venv "$VENV" --python 3.12
 
+# On network-backed volumes (RunPod network volumes) uv's temp-file-then-rename writes can fail
+# with "Stale file handle (os error 116)". Packages installed before the failure stay installed,
+# so retrying makes progress. The 2026-09-21 and 09-24 pods did not hit this.
+echo "/workspace filesystem: $(findmnt -no FSTYPE,SOURCE -T "$WORKSPACE")"
+retry() {
+  local n
+  for n in 1 2 3 4 5; do
+    "$@" && return 0
+    echo "attempt $n failed: $*" >&2; sleep 5
+  done
+  return 1
+}
+
 # Versions pinned to the 2026-09-21 run. FROZEN=1 installs the exact recorded freeze instead.
 if [ "${FROZEN:-0}" = 1 ]; then
-  uv pip install --python "$VENV/bin/python" --torch-backend=cu130 -r "$(dirname "$0")/results/pip-freeze.txt"
+  retry uv pip install --python "$VENV/bin/python" --torch-backend=cu130 -r "$(dirname "$0")/results/pip-freeze.txt"
 else
   # [bench] pulls `datasets` etc. for `vllm bench serve`; transformers >= 5.8.0 is a recipe prerequisite.
-  uv pip install --python "$VENV/bin/python" --torch-backend=cu130 "vllm[bench]==0.29.0" "transformers==5.17.0"
+  retry uv pip install --python "$VENV/bin/python" --torch-backend=cu130 "vllm[bench]==0.29.0" "transformers==5.17.0"
 fi
 
 if [ -n "${HF_TOKEN:-}" ] || [ -s "$HF_HOME/token" ]; then echo "HF token: set"; else echo "HF token: not set (anonymous rate limits)"; fi
-hf download "$MODEL" --revision "$MODEL_REVISION" >/dev/null
-hf download --repo-type dataset likaixin/InstructCoder >/dev/null
-hf download --repo-type dataset philschmid/mt-bench >/dev/null
+retry hf download "$MODEL" --revision "$MODEL_REVISION" >/dev/null
+retry hf download --repo-type dataset likaixin/InstructCoder >/dev/null
+retry hf download --repo-type dataset philschmid/mt-bench >/dev/null
 [ -f "$M0/data/spec_bench.jsonl" ] || curl -sfL -o "$M0/data/spec_bench.jsonl" \
   https://raw.githubusercontent.com/hemingkx/Spec-Bench/refs/heads/main/data/spec_bench/question.jsonl
 
