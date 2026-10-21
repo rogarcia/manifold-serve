@@ -10,5 +10,5 @@ Protocol per run:
 3. Measure: 120s or more per policy, identical seed and trace parameters across policies.
 4. Commit the CSV plus a `runs.md` entry with the full command lines.
 
-Comparisons that ship with M1: round_robin vs least_outstanding vs prefix_aware at low,
-medium, and saturating arrival rates.
+M1 compares round_robin, least_load, session_hash and prefix_aware across load and KV-cache
+pressure. Its runbook is `bench/m1/README.md` and its design is `docs/m1-router-spec.md`.

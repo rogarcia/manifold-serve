@@ -1,5 +1,8 @@
 # deploy/runpod — M0: one RTX 5090, one vLLM replica
 
+M0's record. `manifold.loadgen` was removed in M1 in favor of vLLM's multi-turn benchmark,
+so the loadgen line below needs a pre-M1 checkout. M1 pod work lives in `bench/m1/`.
+
 ```bash
 # 0. once: runpodctl doctor   (Restricted key, GraphQL Read/Write)
 runpodctl gpu list | grep -i 5090

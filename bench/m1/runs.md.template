@@ -1,0 +1,60 @@
+# M1, routing-policy comparison on two replicas: <model>, <date> (UTC)
+
+<One paragraph: what this run measured, which phases ran, and the one-sentence result. Link the
+spec section the run follows (`docs/m1-router-spec.md`, Run protocol).>
+
+## Environment
+
+- Pod: RunPod `<pod-id>` ("<name>"), 2x <GPU name> <memory> MiB, <USD>/hr per GPU,
+  <vCPU> vCPU, kernel <version>. Rented <time>Z, deleted <time>Z (<hours> h, <USD>).
+- Image `runpod/pytorch:1.0.7-cu1300-torch291-ubuntu2404-cluster`, nvcc <version>, driver <version>.
+- vLLM 0.31.0, torch <version>, transformers <version>, flashinfer-python <version>; full freeze in
+  `results/manifest/pip-freeze.txt`.
+- Repo at `<GIT_SHA>` (from `repo/GIT_SHA`).
+- Models: `Qwen/Qwen3.5-9B` @ `<sha>`, `Qwen/Qwen3-8B` @ `<sha>` (`results/manifest/revisions.env`).
+- Bring-up facts per model: attention block size, KV pool in tokens and GiB per replica, bytes
+  per KV token, CUDA graph capture sizes (`results/bringup/<tag>/bringup-facts.txt`).
+- Router overhead: TTFT p50 direct <ms>, through the router <ms>, delta <ms>.
+- Data: ShareGPT V3 sha256 `35f0e213...`, converted file sha256 `<sha>` (<n> conversations),
+  pg1184.txt sha256 `<sha>`.
+
+## Protocol
+
+- Serve flags (both replicas, identical): `--enable-prefix-caching --max-model-len <n>
+  --max-num-batched-tokens 8192 --gpu-memory-utilization 0.90 --seed 0
+  --default-chat-template-kwargs '{"enable_thinking": false}'`, plus `--language-model-only`
+  for Qwen3.5-9B and `--kv-cache-memory-bytes` for the fits and pressure conditions.
+- Load generator: vLLM's `benchmarks/multi_turn/benchmark_serving_multi_turn.py` at v0.31.0,
+  vendored unmodified, closed loop, `-k` <ACTIVE> live conversations, `--limit-max-tokens 0`.
+- Calibration: SLO <ms> p90 TTFT, levels <list>, knee <clients> (rule or by hand, and why).
+- Pressure: working set <tokens> tokens; fits <tokens> tokens (<GiB>), pressure <tokens> tokens
+  (<GiB>) per replica.
+- Loads: 30% = <clients> clients / <requests> requests, 70% = ..., 95% = ...
+- Seeds <list>; policy order rotated per seed. Warm-up dropped: <seconds> s.
+- Drivers and times: `bringup.sh` (<start>-<end>Z), `calibrate.sh` (...), `matrix.sh` (...),
+  `controls.sh` (...), `control-model.sh` (...). Failed cells: <list or none>.
+- Results in `results/<RUN>/<model_tag>/<pressure>/<workload>/<policy>-c<clients>-s<seed>/`.
+
+## Deviations
+
+<Every place this run differs from the spec or from bench/m1/README.md, and why. Include cells
+rerun after a failure and anything changed between phases.>
+
+## Findings
+
+<The headline table first (policy x load x pressure, p50 and p90 TTFT with seed spread, hit rate
+per replica, spill share), then one paragraph per finding. Each finding answers the checklist in
+bench/m1/README.md: what limits it, were both sides tuned, did it error, does it reproduce, did
+the work happen.>
+
+## Protocol problems
+
+<Anything that went wrong with the harness or the pod, what it cost, and the fix.>
+
+## Charts
+
+<Committed script and the files it renders.>
+
+## Results
+
+<summary.csv path and the per-workload tables from `uv run bench/m1/summarize.py results/<RUN>`.>

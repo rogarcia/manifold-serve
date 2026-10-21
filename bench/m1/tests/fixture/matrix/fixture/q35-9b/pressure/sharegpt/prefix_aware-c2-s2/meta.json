@@ -1,0 +1,15 @@
+{
+ "run": "fixture",
+ "model_tag": "q35-9b",
+ "pressure": "pressure",
+ "workload": "sharegpt",
+ "policy": "prefix_aware",
+ "clients": 2,
+ "seed": 2,
+ "nreq": 6,
+ "load_label": "70",
+ "active_requested": 64,
+ "active_effective": 64,
+ "t_start": 1000,
+ "t_end": 1010
+}

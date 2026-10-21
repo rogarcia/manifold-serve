@@ -14,12 +14,12 @@ Built in public. Every design decision ships with a benchmark and a writeup: see
 ## Architecture
 
 ```
-                        +---------------------------+
-   clients  ──────────► │  router (data plane)      │
-   (OpenAI-compatible)  │  policies: round-robin /  │
-                        │  least-outstanding /      │
-                        │  prefix-cache-aware       │
-                        +------------+--------------+
+                        +----------------------------+
+   clients  ──────────► │  router (data plane)       │
+   (OpenAI-compatible)  │  filter, score, pick:      │
+                        │  round_robin, least_load,  │
+                        │  session_hash, prefix_aware│
+                        +-------------+--------------+
                                      │
                  ┌───────────────────┼───────────────────┐
                  ▼                   ▼                   ▼
@@ -38,7 +38,7 @@ Built in public. Every design decision ships with a benchmark and a writeup: see
 
 ## Roadmap
 
-- [ ] **M0**: Serve Qwen3.8-27B (NVFP4) with vLLM on one RTX 5090, async load generator, first published TTFT/TPOT/throughput curves
+- [x] **M0** (done 2026-09): Serve Qwen3.8-27B (NVFP4) with vLLM, async load generator, measured TTFT/TPOT/throughput curves and an MTP speculative-decoding A/B. Three rounds, run records in `bench/m0/runs.md`, `bench/m0-part2/runs.md`, `bench/m0-redux/runs.md`, and `bench/m0-redux/runs-2026-09-24.md`.
 - [ ] **M1**: Router v1 with pluggable policies; measured comparison: round-robin vs least-outstanding vs prefix-cache-aware
 - [ ] **M2**: Custom-metrics autoscaler on Kubernetes; interactive vs batch workload classes; scale-to-zero on spot GPUs
 - [ ] **M3**: Canary model deployments gated by automated evals, auto-promote/rollback
@@ -49,29 +49,25 @@ Built in public. Every design decision ships with a benchmark and a writeup: see
 
 ## Quickstart
 
-Requires one GPU host (a rented RTX 5090 or PRO 6000 works) running two vLLM replicas, or any two OpenAI-compatible endpoints.
+On a laptop, with no GPU: two fake engines (`manifold.sim`, a CPU stand-in for vLLM with a real
+prefix cache and vLLM's metric names) behind the router.
 
 ```bash
-# 1. Start two vLLM replicas sharing one GPU (see deploy/docker-compose.yml)
-docker compose -f deploy/docker-compose.yml up -d
-
-# 2. Run the router
-uv sync
+uv sync --extra dev
+uv run python -m manifold.sim --port 8001 &
+uv run python -m manifold.sim --port 8002 &
 MANIFOLD_BACKENDS="http://localhost:8001,http://localhost:8002" \
-MANIFOLD_POLICY=least_outstanding \
-python -m manifold.router
-
-# 3. Drive load and measure
-uv run python -m manifold.loadgen --base-url http://localhost:8000 \
-  --rate 4 --duration 120 --sessions 32 --out bench/results.csv
+MANIFOLD_POLICY=prefix_aware \
+uv run python -m manifold.router
 ```
 
-The load generator uses open-loop Poisson arrivals and multi-turn chat sessions with shared
-prefixes, so prefix-cache effects are actually exercised.
+`bench/m1/dryrun-local.sh` runs the whole M1 benchmark pipeline this way, with vLLM's multi-turn
+benchmark as the load generator. On a GPU box, `deploy/docker-compose.yml` starts two real vLLM
+replicas on ports 8001 and 8002. On RunPod, follow `bench/m1/README.md`.
 
 ## Benchmarks
 
-Coming with M0. Every number published here is reproducible from `bench/`.
+M0 numbers (single replica, no router) live in the `runs.md` files under `bench/`. The router comparison table below fills in with M1, whose design is in `docs/m1-router-spec.md`. Every number published here is reproducible from `bench/`.
 
 
 | policy    | model | replicas | req/s | TTFT p50 | TTFT p99 | output tok/s |

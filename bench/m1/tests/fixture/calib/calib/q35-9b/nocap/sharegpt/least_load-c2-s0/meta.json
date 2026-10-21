@@ -1,0 +1,15 @@
+{
+ "run": "calib",
+ "model_tag": "q35-9b",
+ "pressure": "nocap",
+ "workload": "sharegpt",
+ "policy": "least_load",
+ "clients": 2,
+ "seed": 0,
+ "nreq": 6,
+ "load_label": "calib",
+ "active_requested": 64,
+ "active_effective": 64,
+ "t_start": 1000,
+ "t_end": 1010
+}
