@@ -4,8 +4,8 @@
 # Usage: calibrate.sh [RUN]     RUN defaults to calib; results in $M1/results/RUN/<tag>/nocap/
 #   CALIB_CLIENTS (default "2 4 8 16 32 64", divisors of ACTIVE=64 so every level has exactly 64
 #   live conversations), CALIB_REQ_PER_CLIENT (40), CALIB_MIN_NREQ (200),
-#   CALIB_SEED (0). KNEE=N overrides the knee the rule picks. MATRIX_ACTIVE=N writes ACTIVE=N
-#   (the matrix's live conversations) into knee.env.
+#   CALIB_SEED (0). KNEE=N overrides the knee the rule picks. MATRIX_ACTIVE=N writes it into
+#   knee.env; env.sh then uses it for ACTIVE (the matrix's live conversations) unless ACTIVE is set.
 set -euo pipefail
 RUN=${1:-calib}
 source "$(dirname "$0")/env.sh"

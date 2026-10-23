@@ -157,8 +157,9 @@ skipped. Above 64 clients each client holds one conversation, so the working set
 the client count; say so in the run record. If the rule picks a level that looks like noise, set it by hand with
 `KNEE=<clients> /workspace/m1/repo/bench/m1/calibrate.sh calib`. When the knee is above 64 clients,
 also set `MATRIX_ACTIVE` to a live conversation count that every matrix load divides within
-15% (the table prints the count per load); it goes into `knee.env` as `ACTIVE`, which the
-matrix, `size_kv.py` and the controls then use. Check the effective live conversation count in
+15% (the table prints the count per load). It goes into `knee.env`, and `env.sh` uses it for
+`ACTIVE` in the matrix, `size_kv.py` and the controls. An `ACTIVE` set on the command line
+still wins, for example to rerun a calibration level with its original 64. Check the effective live conversation count in
 the `active` column. The benchmark gives each client `ACTIVE / clients` conversations rounded
 down, so `cell.sh` passes the multiple of the client count nearest to 64 and records both
 numbers in `meta.json`. The matrix loads (30%, 70% and 95% of the knee) need not divide 64,

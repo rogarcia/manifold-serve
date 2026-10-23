@@ -48,7 +48,8 @@ export MAX_NUM_BATCHED_TOKENS=${MAX_NUM_BATCHED_TOKENS:-8192}
 export GPU_MEMORY_UTILIZATION=${GPU_MEMORY_UTILIZATION:-0.90}
 
 # Live conversations in the bench. Fixed across load levels so the working set stays fixed.
-export ACTIVE=${ACTIVE:-64}
+# Set at the end: the caller's ACTIVE wins, then MATRIX_ACTIVE from knee.env, then 64.
+ACTIVE_FROM_CALLER=${ACTIVE:-}
 export WARMUP_S=${WARMUP_S:-60}
 export SLO_MS=${SLO_MS:-1000}
 export DURATION_S=${DURATION_S:-420}
@@ -77,6 +78,7 @@ for f in "$M1/bringup-$MODEL_TAG.env" "$M1/pressure-$MODEL_TAG.env" "$M1/knee.en
   # shellcheck source=/dev/null
   if [ -f "$f" ]; then . "$f"; fi
 done
+export ACTIVE=${ACTIVE_FROM_CALLER:-${MATRIX_ACTIVE:-64}}
 
 # Names re-exported into processes started in tmux, whose environment is the tmux server's.
 LAUNCH_VARS="REPO WORKSPACE M1 VENV HF_HOME MODEL_TAG REV_Q35_9B REV_Q3_8B PORT_A PORT_B ROUTER_PORT MAX_MODEL_LEN MAX_NUM_BATCHED_TOKENS GPU_MEMORY_UTILIZATION SIM SIM_BLOCK_TOKENS SIM_KV_BLOCKS SIM_FLAGS SIM_BYTES_PER_TOKEN"

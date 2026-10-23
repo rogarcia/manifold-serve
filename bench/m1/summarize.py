@@ -8,7 +8,8 @@
       One row per finished cell under ROOT into summary.csv, and markdown headline tables.
   uv run summarize.py --calibrate ROOT [--slo-ms 1000] [--duration-s 420] [--knee N] [--active N] [--write-knee FILE]
       Per load level: p90 TTFT and waiting growth. Picks the knee, sizes the matrix loads.
-      --active records the matrix's live conversations (ACTIVE) in the knee file.
+      --active records the matrix's live conversations in the knee file as MATRIX_ACTIVE, which
+      env.sh uses for ACTIVE unless the caller sets ACTIVE.
   uv run summarize.py --self-test
       Runs both on tests/fixture/ and checks the numbers.
 """
@@ -241,7 +242,7 @@ def calibrate(df: pd.DataFrame, slo_ms: float, duration_s: float, knee: int | No
         return "\n".join(lines), {}
     env = {"KNEE_CLIENTS": knee}
     if active:
-        env["ACTIVE"] = active
+        env["MATRIX_ACTIVE"] = active
     for f in LOAD_FRACS:
         c = max(1, round(knee * f / 100))
         rps = float(np.interp(c, df["clients"], df["achieved_rps"]))
@@ -300,7 +301,7 @@ def main() -> None:
     ap.add_argument("--slo-ms", type=float, default=1000.0)
     ap.add_argument("--duration-s", type=float, default=420.0)
     ap.add_argument("--knee", type=int)
-    ap.add_argument("--active", type=int, help="live conversations for the matrix, written to the knee file as ACTIVE")
+    ap.add_argument("--active", type=int, help="live conversations for the matrix, written to the knee file as MATRIX_ACTIVE")
     ap.add_argument("--write-knee", type=Path)
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args()
