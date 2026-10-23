@@ -23,6 +23,8 @@ packages = ["manifold"]
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
 hf = ["transformers>=4.45", "jinja2>=3.1"]
+# Client for the Modal runs in bench/m1/modal; not needed on the pod.
+modal = ["modal>=1.6.2"]
 
 [tool.ruff]
 line-length = 100

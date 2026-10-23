@@ -6,8 +6,9 @@
 
   uv run summarize.py ROOT [--warmup-s 60] [--out CSV]
       One row per finished cell under ROOT into summary.csv, and markdown headline tables.
-  uv run summarize.py --calibrate ROOT [--slo-ms 1000] [--duration-s 420] [--knee N] [--write-knee FILE]
+  uv run summarize.py --calibrate ROOT [--slo-ms 1000] [--duration-s 420] [--knee N] [--active N] [--write-knee FILE]
       Per load level: p90 TTFT and waiting growth. Picks the knee, sizes the matrix loads.
+      --active records the matrix's live conversations (ACTIVE) in the knee file.
   uv run summarize.py --self-test
       Runs both on tests/fixture/ and checks the numbers.
 """
@@ -83,6 +84,8 @@ class Cell:
     spill_share: float
     queue_ms_mean: float
     prefill_ms_mean: float
+    router_wait_p50_ms: float
+    router_wait_p90_ms: float
     join_coverage: float
     same_replica_share: float
     waiting_mean: float
@@ -157,6 +160,10 @@ def summarize_cell(cell: Path, warmup_s: float) -> Cell:
     both = {k: da.get(k, 0.0) + db.get(k, 0.0) for k in set(da) | set(db)}
     coverage, same = join_turns(stats, dec)
     w_mean, w_slope, w_first, w_last = waiting_growth(cell, meta["t_start"] + warmup_s)
+    # Time from the router receiving a request to sending it upstream: its own work plus queueing
+    # in its single event loop, which grows with load and is part of every TTFT.
+    late = ok[ok["t_received"] >= meta["t_start"] + warmup_s]
+    wait_ms = 1000 * (late["t_sent"] - late["t_received"]) if "t_sent" in late else pd.Series(dtype=float)
     return Cell(
         run=meta["run"], model_tag=meta["model_tag"], pressure=meta["pressure"],
         workload=meta["workload"], policy=meta["policy"], clients=meta["clients"],
@@ -175,6 +182,7 @@ def summarize_cell(cell: Path, warmup_s: float) -> Cell:
         spill_share=ratio(ok["spilled"].sum(), len(ok)),
         queue_ms_mean=1000 * ratio(both.get(q_sum, 0.0), both.get(q_cnt, 0.0)),
         prefill_ms_mean=1000 * ratio(both.get(p_sum, 0.0), both.get(p_cnt, 0.0)),
+        router_wait_p50_ms=pct(wait_ms.dropna(), 50), router_wait_p90_ms=pct(wait_ms.dropna(), 90),
         join_coverage=coverage, same_replica_share=same,
         waiting_mean=w_mean, waiting_slope_per_min=w_slope,
         waiting_first_q=w_first, waiting_last_q=w_last,
@@ -197,17 +205,20 @@ def headline(df: pd.DataFrame) -> str:
     df = df.assign(load=df["load_label"].fillna("c" + df["clients"].astype(str)))
     for (model, workload), g in df.groupby(["model_tag", "workload"]):
         out += [f"\n### {model}, {workload}\n",
-                "| pressure | load | policy | seeds | TTFT p50 ms | TTFT p90 ms | hit rate | share A | spill | errors |",
-                "|---|---|---|---|---|---|---|---|---|---|"]
+                "| pressure | load | policy | seeds | TTFT p50 ms | TTFT p90 ms | hit rate | share A | spill | errors "
+                "| router wait p50 ms | router wait p90 ms |",
+                "|---|---|---|---|---|---|---|---|---|---|---|---|"]
         for (pressure, load, policy), c in g.groupby(["pressure", "load", "policy"]):
             out.append(
                 f"| {pressure} | {load} | {policy} | {len(c)} | {spread(c['ttft_p50_ms'])} | "
                 f"{spread(c['ttft_p90_ms'])} | {c['hit_rate'].mean():.2f} | {c['share_a'].mean():.2f} | "
-                f"{c['spill_share'].mean():.2f} | {int(c['errors'].sum())} |")
+                f"{c['spill_share'].mean():.2f} | {int(c['errors'].sum())} | "
+                f"{c['router_wait_p50_ms'].mean():.1f} | {c['router_wait_p90_ms'].mean():.1f} |")
     return "\n".join(out)
 
 
-def calibrate(df: pd.DataFrame, slo_ms: float, duration_s: float, knee: int | None) -> tuple[str, dict]:
+def calibrate(df: pd.DataFrame, slo_ms: float, duration_s: float, knee: int | None,
+              active: int | None = None) -> tuple[str, dict]:
     df = df[(df["policy"] == "least_load") & (df["workload"] == "sharegpt")].sort_values("clients")
     df = df.assign(
         over_slo=df["ttft_p90_ms"] > slo_ms,
@@ -229,12 +240,18 @@ def calibrate(df: pd.DataFrame, slo_ms: float, duration_s: float, knee: int | No
     if knee is None:
         return "\n".join(lines), {}
     env = {"KNEE_CLIENTS": knee}
+    if active:
+        env["ACTIVE"] = active
     for f in LOAD_FRACS:
         c = max(1, round(knee * f / 100))
         rps = float(np.interp(c, df["clients"], df["achieved_rps"]))
         env[f"CLIENTS_{f}"] = c
         env[f"NREQ_{f}"] = max(4 * c, round(duration_s * rps))
         lines.append(f"load {f}%: {c} clients, about {rps:.2f} req/s, NREQ {env[f'NREQ_{f}']} for {duration_s:.0f} s")
+        if active:
+            # The bench gives each client the same whole number of conversations.
+            live = max(1, round(active / c)) * c
+            lines.append(f"  {live} live conversations for ACTIVE {active} ({100 * (live - active) / active:+.0f}%)")
     if len({env[f"CLIENTS_{f}"] for f in LOAD_FRACS}) < len(LOAD_FRACS):
         lines.append("WARNING: two load levels round to the same client count")
     return "\n".join(lines), env
@@ -283,6 +300,7 @@ def main() -> None:
     ap.add_argument("--slo-ms", type=float, default=1000.0)
     ap.add_argument("--duration-s", type=float, default=420.0)
     ap.add_argument("--knee", type=int)
+    ap.add_argument("--active", type=int, help="live conversations for the matrix, written to the knee file as ACTIVE")
     ap.add_argument("--write-knee", type=Path)
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args()
@@ -298,11 +316,12 @@ def main() -> None:
     df.to_csv(out, index=False)
     print(f"{len(df)} cells -> {out}")
     if a.calibrate:
-        text, env = calibrate(df, a.slo_ms, a.duration_s, a.knee)
+        text, env = calibrate(df, a.slo_ms, a.duration_s, a.knee, a.active)
         print(text)
         if a.write_knee and env:
             write_env(a.write_knee, env, f"summarize.py --calibrate {a.root}, SLO {a.slo_ms:.0f} ms, "
-                      f"{a.duration_s:.0f} s per cell{', knee set by hand' if a.knee else ''}")
+                      f"{a.duration_s:.0f} s per cell{', knee set by hand' if a.knee else ''}"
+                      f"{f', ACTIVE {a.active}' if a.active else ''}")
             print(f"wrote {a.write_knee}")
     else:
         print(headline(df))

@@ -155,7 +155,10 @@ Read the table before trusting `knee.env`. If no level fails, raise the top of t
 rerun, for example `CALIB_CLIENTS="64 96 128" /workspace/m1/repo/bench/m1/calibrate.sh calib`; finished levels are
 skipped. Above 64 clients each client holds one conversation, so the working set grows with
 the client count; say so in the run record. If the rule picks a level that looks like noise, set it by hand with
-`KNEE=<clients> /workspace/m1/repo/bench/m1/calibrate.sh calib`. Check the effective live conversation count in
+`KNEE=<clients> /workspace/m1/repo/bench/m1/calibrate.sh calib`. When the knee is above 64 clients,
+also set `MATRIX_ACTIVE` to a live conversation count that every matrix load divides within
+15% (the table prints the count per load); it goes into `knee.env` as `ACTIVE`, which the
+matrix, `size_kv.py` and the controls then use. Check the effective live conversation count in
 the `active` column. The benchmark gives each client `ACTIVE / clients` conversations rounded
 down, so `cell.sh` passes the multiple of the client count nearest to 64 and records both
 numbers in `meta.json`. The matrix loads (30%, 70% and 95% of the knee) need not divide 64,
@@ -209,10 +212,11 @@ row stop the driver, since that usually means a replica died. For a failed cell,
 rerun the same `matrix.sh $RUN` command, which retries only the cells without `DONE`. If a
 replica is down, `matrix.sh` restarts both when it finds `/health` failing. A cell also fails
 when no benchmark client reached its request quota, when a client process crashed, when the
-benchmark returns fewer than 80% of its requests (`MIN_COMPLETE`), when the canary does not
+benchmark returns fewer than 40% of its requests (`MIN_COMPLETE`), when the canary does not
 hit, or when the benchmark runs past `BENCH_TIMEOUT_S`. The benchmark stops every client as
-soon as the first one reaches its quota, so a clean cell returns a few percent fewer records
-than it asked for.
+soon as the first one reaches its quota, so a clean cell returns fewer records than it asked
+for: a few percent with a handful of clients, but 51 to 84% with 16 or more clients in the
+2026-10-23 calibration.
 
 Third seed on the headline cells (70% and 95% under pressure):
 

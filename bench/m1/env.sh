@@ -53,8 +53,10 @@ export WARMUP_S=${WARMUP_S:-60}
 export SLO_MS=${SLO_MS:-1000}
 export DURATION_S=${DURATION_S:-420}
 export REQUEST_TIMEOUT_S=${REQUEST_TIMEOUT_S:-300}
-# A cell fails if the bench returns fewer than this share of the requests it was asked for.
-export MIN_COMPLETE=${MIN_COMPLETE:-0.8}
+# A cell fails if the bench returns fewer than this share of the requests it was asked for. The
+# bench stops every client once the first reaches its quota, and on the 2026-10-23 calibration
+# clean cells with 16 or more clients returned 51-84%, so this only catches cells that died early.
+export MIN_COMPLETE=${MIN_COMPLETE:-0.4}
 
 # ShareGPT conversion (prep_sharegpt.py): multi-turn only (at least two user turns), at most 10
 # user turns, every message 1 to 4,000 characters. That bounds a conversation at about

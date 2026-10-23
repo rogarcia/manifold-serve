@@ -44,7 +44,8 @@ def main() -> None:
     ap.add_argument("calib_root", type=Path, help="calibration results tree (cells with stats.json and DONE)")
     ap.add_argument("--model-tag", default=os.environ.get("MODEL_TAG", "q35-9b"))
     ap.add_argument("--m1", type=Path, default=Path(os.environ.get("M1", "/workspace/m1")))
-    ap.add_argument("--active", type=int, help="live conversations; default: the effective count the calibration cells ran with")
+    ap.add_argument("--active", type=int, help="live conversations in the matrix; default: $ACTIVE when set "
+                    "(env.sh, raised by knee.env), else the most the calibration cells ran with")
     ap.add_argument("--max-model-len", type=int, default=int(os.environ.get("MAX_MODEL_LEN", "32768")))
     a = ap.parse_args()
 
@@ -56,6 +57,8 @@ def main() -> None:
     if not cells:
         raise SystemExit(f"no finished cells under {a.calib_root}")
     actives = sorted({json.loads((c / "meta.json").read_text())["active_effective"] for c in cells})
+    if a.active is None and os.environ.get("ACTIVE"):
+        a.active = int(os.environ["ACTIVE"])
     if a.active is None:
         a.active = max(actives)
         if len(actives) > 1:
