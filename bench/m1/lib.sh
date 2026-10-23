@@ -23,6 +23,14 @@ launch() {
   tmux new-session -d -s "$session" "bash $(printf %q "$script") > $(printf %q "$logf") 2>&1"
 }
 
+# Fail unless nothing listens on PORT. curl exits 7 only when the connection is refused; any
+# HTTP answer means another process (RunPod's nginx, a stale server) would answer our health checks.
+require_free_port() {
+  local rc=0
+  curl -s -o /dev/null --max-time 2 "http://127.0.0.1:$1/" || rc=$?
+  [ "$rc" = 7 ] || die "port $1 is already in use (see: ss -ltnp | grep :$1)"
+}
+
 # Wait until URL answers 200. Fails early if tmux SESSION exits, printing the tail of LOG.
 wait_http() {
   local url=$1 timeout_s=$2 session=${3:-} logf=${4:-} t0=$SECONDS

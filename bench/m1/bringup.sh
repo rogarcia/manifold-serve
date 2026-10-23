@@ -66,9 +66,12 @@ log "thinking check ok: reply has no <think>"
 
 if [ "${SKIP_OVERHEAD:-0}" != 1 ]; then
   N=${OVERHEAD_N:-200}
+  # Only TTFT is compared, so each reply is one token. With the dataset's reply lengths (about
+  # 265 tokens) the 400 requests took over 20 minutes.
   OVH=(python "$BENCH_DIR/run_bench.py"
     -i "$DATA/sharegpt.json" -m "$TOKENIZER_PATH" --served-model-name "$MODEL"
-    -p 1 -k 1 -n "$N" --max-turns 2 --seed 0 --limit-max-tokens 0 --send-conversation-id)
+    -p 1 -k 1 -n "$N" --max-turns 2 --seed 0 --limit-min-tokens 1 --limit-max-tokens 1
+    --send-conversation-id)
   reset_prefix_cache "$URL_A"
   "${OVH[@]}" -u "$URL_A" --stats-json-output "$OUT/overhead-direct.json" > "$OUT/overhead-direct.log" 2>&1
   ROUTER_BACKENDS=$URL_A "$BENCH_DIR/router.sh" prefix_aware "$OUT/overhead-router"

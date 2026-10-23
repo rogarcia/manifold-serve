@@ -12,6 +12,8 @@ export MODEL_TAG=${1:?usage: serve.sh MODEL_TAG [nocap|fits|pressure]}
 PRESSURE=${2:-nocap}
 source "$(dirname "$0")/env.sh"
 source "$BENCH_DIR/lib.sh"
+# Without this, a missing $VENV silently falls back to whatever python or vllm is next on PATH.
+[ -x "$VENV/bin/python" ] || die "no venv at $VENV: run bootstrap.sh with this VENV first"
 
 KV_BYTES=""; KV_SIM_BLOCKS=$SIM_KV_BLOCKS
 case "$PRESSURE" in
@@ -35,6 +37,7 @@ TS=$(date -u +%Y%m%dT%H%M%SZ)
 
 start_replica() {
   local r=$1 gpu=$2 port=$3 logf=$4
+  require_free_port "$port"
   if [ "$SIM" = 1 ]; then
     # shellcheck disable=SC2086
     launch "vllm-$r" "$logf" python -m manifold.sim --host 127.0.0.1 --port "$port" --model "$MODEL" \

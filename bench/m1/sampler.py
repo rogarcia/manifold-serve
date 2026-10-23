@@ -1,6 +1,6 @@
 """Poll each replica's /metrics once a second and append gauges to a TSV until killed.
 
-Usage: python sampler.py OUT.tsv a=http://localhost:8001 b=http://localhost:8002
+Usage: python sampler.py OUT.tsv a=http://localhost:18001 b=http://localhost:18002
 Columns: t (Unix seconds), replica, waiting, running, kv_usage. Stdlib only.
 """
 

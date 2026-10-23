@@ -7,6 +7,9 @@ export BENCH_DIR
 export REPO=${REPO:-$(cd "$BENCH_DIR/../.." && pwd)}
 export WORKSPACE=${WORKSPACE:-/workspace}
 export M1=${M1:-$WORKSPACE/m1}
+# Optional secrets and overrides (HF_TOKEN=..., VENV=...). Not versioned; see .env.example.
+# Read before the defaults below, so a VENV set here also reaches PATH and LD_LIBRARY_PATH.
+if [ -f "$M1/.env" ]; then set -a; . "$M1/.env"; set +a; fi
 export VENV=${VENV:-$WORKSPACE/.venv}
 export HF_HOME=${HF_HOME:-$WORKSPACE/hf}
 export DATA=$M1/data RESULTS=$M1/results LOGS=$M1/logs
@@ -17,8 +20,6 @@ export UV_LINK_MODE=copy
 # Enables POST /reset_prefix_cache on vLLM.
 export VLLM_SERVER_DEV_MODE=1
 
-# Optional secrets (HF_TOKEN=...). Not versioned; see .env.example.
-if [ -f "$M1/.env" ]; then set -a; . "$M1/.env"; set +a; fi
 # Commit SHAs resolved by bootstrap.sh, so every serve in a run uses the same weights. The file
 # only fills REV_Q35_9B / REV_Q3_8B when unset, so `REV_Q3_8B=<sha> ./serve.sh q3-8b` overrides.
 if [ -f "$M1/revisions.env" ]; then . "$M1/revisions.env"; fi
@@ -39,7 +40,8 @@ TOKENIZER_PATH=$HF_HOME/hub/models--${MODEL//\//--}/snapshots/$MODEL_REVISION
 # Thinking is on by default for both models. Off for every request, at the server and the router.
 export CHAT_TEMPLATE_KWARGS='{"enable_thinking": false}'
 
-export PORT_A=${PORT_A:-8001} PORT_B=${PORT_B:-8002} ROUTER_PORT=${ROUTER_PORT:-8000}
+# Not 8000-8002: RunPod's nginx already listens on 8001 (and other exposed HTTP ports) on its images.
+export PORT_A=${PORT_A:-18001} PORT_B=${PORT_B:-18002} ROUTER_PORT=${ROUTER_PORT:-18000}
 export URL_A=http://localhost:$PORT_A URL_B=http://localhost:$PORT_B ROUTER_URL=http://localhost:$ROUTER_PORT
 export MAX_MODEL_LEN=${MAX_MODEL_LEN:-32768}
 export MAX_NUM_BATCHED_TOKENS=${MAX_NUM_BATCHED_TOKENS:-8192}

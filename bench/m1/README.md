@@ -51,7 +51,7 @@ matrix is already the isolated configuration and that separate check is not need
 ```bash
 runpodctl pod create --name m1-router \
   --gpu-id "NVIDIA RTX PRO 6000 Blackwell Server Edition" --gpu-count 2 \
-  --image runpod/pytorch:1.0.7-cu1300-torch291-ubuntu2404-cluster \
+  --image runpod/pytorch:1.4.1-cu1320-torch2130-ubuntu2404 \
   --volume-in-gb 150 --container-disk-in-gb 50 \
   --ports "22/tcp" --min-cuda-version 13.0 --wait
 runpodctl ssh info <pod-id>
@@ -76,11 +76,16 @@ bench/m1/push.sh HOST PORT --bootstrap
 This copies the working tree (uncommitted edits included) to `/workspace/m1/repo`, records the
 commit in `repo/GIT_SHA`, copies `.env`, and runs `bootstrap.sh`. Bootstrap is idempotent, so
 rerun the same command after any failure. It installs uv and `vllm==0.31.0` with the cu130
-torch build into `/workspace/.venv`, installs the repo with its `hf` extra, downloads both
+torch build into `$VENV` (default `/workspace/.venv`; set `VENV=/root/.venv` in `bench/m1/.env`
+to keep it on container disk, where vLLM starts much faster), installs the repo with its `hf` extra, downloads both
 models and records each commit SHA in `/workspace/m1/revisions.env`, downloads and checks the
 ShareGPT file, converts it, and writes `/workspace/m1/env-manifest.txt` and `pip-freeze.txt`.
 Every later serve uses the recorded SHAs. To pin a different revision, set
 `REV_Q35_9B=<sha>` or `REV_Q3_8B=<sha>` in the environment.
+
+To reinstall exactly the packages of an earlier pod, put `FROZEN=1` in `bench/m1/.env`. Bootstrap
+then installs from `bench/m1/results/manifest/pip-freeze.txt`, which `pull.sh` brought back and
+`push.sh` sends along.
 
 The ShareGPT conversion keeps conversations with at least two user turns, cuts them at ten
 user turns, and drops any conversation with a message over 4,000 characters or an empty one
@@ -102,8 +107,8 @@ tmux new -d -s bringup 'bash -c "/workspace/m1/repo/bench/m1/bringup.sh q35-9b 2
 tail -f /workspace/m1/logs/bringup.log
 ```
 
-`bringup.sh` starts replica A on GPU 0 (port 8001), waits for `/health`, then starts replica B
-on GPU 1 (port 8002), both with vLLM sizing the KV pool. The first start compiles and captures
+`bringup.sh` starts replica A on GPU 0 (port 18001), waits for `/health`, then starts replica B
+on GPU 1 (port 18002), both with vLLM sizing the KV pool. The first start compiles and captures
 CUDA graphs; allow up to 20 minutes. It then records the startup facts, runs the canary on both
 replicas, checks that a reply has no `<think>`, and measures router overhead with 200 single
 requests direct to replica A and 200 through a router whose only backend is A. Output is in

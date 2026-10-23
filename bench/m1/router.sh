@@ -26,6 +26,7 @@ CELL_DIR=${2:?usage: router.sh POLICY CELL_DIR}
 load_current
 mkdir -p "$CELL_DIR"
 router_stop
+require_free_port "$ROUTER_PORT"
 
 # The router's prefix index is sized to one replica's KV pool, in blocks.
 KV_MIN=$(( CUR_KV_TOKENS_A < CUR_KV_TOKENS_B ? CUR_KV_TOKENS_A : CUR_KV_TOKENS_B ))

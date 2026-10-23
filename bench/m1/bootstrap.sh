@@ -30,6 +30,8 @@ retry() {
 }
 
 if [ "${FROZEN:-0}" = 1 ]; then
+  [ -s "$BENCH_DIR/results/manifest/pip-freeze.txt" ] \
+    || die "FROZEN=1 but no $BENCH_DIR/results/manifest/pip-freeze.txt: pull one from a previous pod first"
   retry uv pip install --python "$VENV/bin/python" --torch-backend=cu130 -r "$BENCH_DIR/results/manifest/pip-freeze.txt"
   retry uv pip install --python "$VENV/bin/python" --no-deps -e "${REPO}[hf]"
 else
@@ -53,8 +55,10 @@ done
 
 # ShareGPT V3, the file vLLM's own benchmarks use. The hash was measured on 2026-10-16.
 SHAREGPT_SHA256=35f0e213ce091ed9b9af2a1f0755e9d39f9ccec34ab281cd4ca60d70f6479ba4
-RAW=$(retry hf download --repo-type dataset anon8231489123/ShareGPT_Vicuna_unfiltered \
-  ShareGPT_V3_unfiltered_cleaned_split.json | tail -1)
+# Ask the library for the path: newer `hf download` prints "  path: <file>", not the bare path.
+RAW=$(retry python -c 'from huggingface_hub import hf_hub_download as d; print(d(
+  "anon8231489123/ShareGPT_Vicuna_unfiltered", "ShareGPT_V3_unfiltered_cleaned_split.json",
+  repo_type="dataset"))' | tail -1)
 got=$(sha256sum "$RAW" | cut -d' ' -f1)
 [ "$got" = "$SHAREGPT_SHA256" ] || die "ShareGPT file changed upstream: sha256 $got"
 [ -s "$DATA/pg1184.txt" ] || curl -sfL -o "$DATA/pg1184.txt" https://www.gutenberg.org/ebooks/1184.txt.utf-8
