@@ -184,7 +184,7 @@ is never a constraint. Engine init: 487 s on the first start, 140–170 s afterw
 - `serve.sh`, `stop.sh`, `bench.sh`, `run-code.sh`, `run-k7-chat.sh` — everything run on the pod
 - `results/<config>/<cell>-c<N>-greedy-thinkoff.{json,log}` — `vllm bench serve` result JSON + console output
 - `results/env-manifest.txt`, `results/pip-freeze.txt`
-- `charts.py` — `uv run bench/m0-redux/charts.py` renders `charts/*.{svg,png}` from the result JSONs: speedup_vs_k, throughput_by_k, acceptance_vs_speedup, acceptance_by_position, tpot_tail, kv_pool_cost
+- `charts/*.{svg,png}`, drawn from the result JSONs: speedup_vs_k, throughput_by_k, acceptance_vs_speedup, acceptance_by_position, tpot_tail, kv_pool_cost
 - `logs/serve-*.log` — full server log per start; `logs/run-*.log` — driver logs
 - 2026-09-24 additions: `run-deferred.sh`, `run-triton.sh`, `run-categories.sh`, `run-long.sh`,
   `run-sweep.sh` (drivers); `probe-ttft.py`, `ttft-test.py` (TTFT); results in `results/2026-09-24/`

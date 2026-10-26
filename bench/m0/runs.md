@@ -11,4 +11,4 @@ Protocol: warm-up 60 s discarded; 120 s per rate; sweep 0.5,1,2,4,8 req/s; seed 
   Slower than the 0.5 req/s run (63 ms) — anomaly; suspects: the 85 client-timed-out requests from the
   8 req/s stage still draining server-side, or clocks after 361 W sustained. Re-measure on a fresh
   server next session before quoting a single-stream number.
-- Charts: `uv run bench/m0/charts.py` → bench/m0/charts/{ttft_vs_rate,tpot_throughput,ttft_by_turn}.{svg,png}
+- Charts: bench/m0/charts/{ttft_vs_rate,tpot_throughput,ttft_by_turn}.{svg,png}

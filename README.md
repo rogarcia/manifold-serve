@@ -67,15 +67,21 @@ replicas on ports 8001 and 8002. On RunPod, follow `bench/m1/README.md`.
 
 ## Benchmarks
 
-M0 numbers (single replica, no router) live in the `runs.md` files under `bench/`. The router comparison table below fills in with M1, whose runbook is `bench/m1/README.md`. Every number published here is reproducible from `bench/`.
+M0 numbers (single replica, no router) live in the `runs*.md` files under `bench/`, with charts
+next to them. Raw benchmark output is not in the repository; the scripts in `bench/` run the same
+experiments on your own hardware.
 
+M1 compares router policies on two Qwen3.5-9B replicas (vLLM 0.31.0, 2 x RTX PRO 6000) at 95% of
+the throughput knee, with a KV pool that holds 0.7 of the working set. Two seeds each; details in
+`bench/m1/runs-2026-10-26.md`.
 
-| policy    | model | replicas | req/s | TTFT p50 | TTFT p99 | output tok/s |
-| --------- | ----- | -------- | ----- | -------- | -------- | ------------ |
-| *pending* |       |          |       |          |          |              |
+| policy         | TTFT p50 | TTFT p90 | prefix-cache hit rate |
+| -------------- | -------- | -------- | --------------------- |
+| `least_load`   | 158 ms   | 282 ms   | 0.24                  |
+| `session_hash` | 148 ms   | 264 ms   | 0.38                  |
+| `prefix_aware` | 144 ms   | 242 ms   | 0.39                  |
 
-
-
+![p90 TTFT by policy](bench/m1/charts/ttft_by_policy.svg)
 
 ## Why "manifold"
 

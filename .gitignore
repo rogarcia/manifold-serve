@@ -15,3 +15,20 @@ docs/
 logs/
 .claude/
 
+# Raw benchmark output stays local. Each milestone publishes runs*.md, charts/ and the scripts.
+bench/*/results/
+bench/m1/modal/results/
+bench/m1/modal/data/
+bench/m0/metrics_*.txt
+bench/m0/rate_*.csv
+bench/m0/summary_*.txt
+bench/m0/single_stream*.csv
+bench/m0/vllm-startup.log
+bench/m0-part2/metrics_*.txt
+bench/m0-part2/rate_*.csv
+bench/m0-part2/summary_*.txt
+bench/m0-part2/single_stream*.csv
+bench/m0-part2/vllm-startup.log
+bench/m0-part2/freeze.txt
+bench/m0-part2/mtp/
+bench/**/charts*.py
