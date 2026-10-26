@@ -3,3 +3,5 @@
 # the conversations fits?
 pressure 95 least_load   1
 pressure 95 prefix_aware 1
+pressure 95 least_load   2
+pressure 95 prefix_aware 2
