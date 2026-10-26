@@ -117,6 +117,15 @@ uv run modal run --detach bench/m1/modal/app.py --cmd "./controls.sh $RUN"
 uv run modal run --detach bench/m1/modal/app.py --cmd "./control-model.sh $RUN"
 ```
 
+For a run capped in money rather than cells, `bench/m1/modal/budget.sh RUN CAP_MIN` starts
+`bench/m1/budget.sh` (the priority-ordered cell list) detached, with the Function timeout set to
+`CAP_MIN` and the budget.sh deadline fixed at launch time minus 5 minutes. A preempted call
+restarts against the same deadline, skips finished cells, and exits once nothing more fits.
+
+```bash
+bench/m1/modal/budget.sh m1-$(date -u +%F) 115
+```
+
 Steps can be chained in one call to avoid a second replica start, for example
 `--cmd "./bringup.sh q35-9b && ./calibrate.sh calib"`, but then nobody reads the go/no-go list
 before calibration spends GPU time.

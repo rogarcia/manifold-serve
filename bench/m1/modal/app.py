@@ -26,6 +26,9 @@ GPU = "RTX-PRO-6000:2"
 # M1_CPU overrides it for one call.
 CPU = int(os.environ.get("M1_CPU", "16"))
 MEMORY_MIB = 64 * 1024
+# A hard cap on one container's run time, so a hang cannot spend past the budget. M1_TIMEOUT_S
+# overrides it for one call (modal/budget.sh sets it).
+TIMEOUT_S = int(os.environ.get("M1_TIMEOUT_S", 24 * 3600))
 
 # Same CUDA toolkit major and minor as the RunPod image of 2026-10-23 (nvcc 13.2): FlashInfer
 # JIT-compiles its kernels with it. Modal's driver supports CUDA 13.3.
@@ -80,7 +83,7 @@ def _hf_secret() -> modal.Secret:
 app = modal.App("manifold-m1")
 volume = modal.Volume.from_name(VOLUME, create_if_missing=True)
 common = dict(image=image, volumes={"/workspace": volume}, secrets=[_hf_secret()],
-              timeout=24 * 3600)
+              timeout=TIMEOUT_S)
 
 
 def _run(cmd: str, git_sha: str) -> None:
