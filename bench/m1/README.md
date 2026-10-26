@@ -1,6 +1,6 @@
 # bench/m1: the routing-policy comparison on a RunPod pod
 
-This directory runs the M1 measurement from `docs/m1-router-spec.md`. Two vLLM 0.31.0 replicas
+This directory runs the M1 routing-policy measurement. Two vLLM 0.31.0 replicas
 serve the same model, one per GPU on a single two-GPU pod. The manifold router sits in front of
 them, and vLLM's own multi-turn benchmark replays ShareGPT conversations through the router. Each
 cell fixes one policy, one load, one KV-cache pressure and one seed, and writes its results to
@@ -165,17 +165,21 @@ down, so `cell.sh` passes the multiple of the client count nearest to 64 and rec
 numbers in `meta.json`. The matrix loads (30%, 70% and 95% of the knee) need not divide 64,
 and `matrix.sh` warns when a load level runs more than 15% away from 64.
 
-Then size the pressure axis:
+Then size the pressure axis. `size_kv.py` needs `STATE_BLOCKS` and `BLOCK_BYTES` from `env.sh`:
 
 ```bash
+source /workspace/m1/repo/bench/m1/env.sh
 uv run /workspace/m1/repo/bench/m1/size_kv.py /workspace/m1/results/calib/q35-9b/nocap
 ```
 
-It prints the arithmetic: the mean block-rounded context of a live conversation over the last
-half of each calibration cell, times the effective live conversation count, is the working set; "fits" is 2.0 times that and
-"pressure" is 0.7 times that, per replica, converted to bytes with the bring-up bytes per
-token. It writes `/workspace/m1/pressure-q35-9b.env`. Stop if it prints a warning. A pool below
-`MAX_MODEL_LEN` makes vLLM refuse to start.
+It prints the arithmetic in engine blocks, the unit vLLM allocates. One live conversation holds
+its context, rounded up to whole blocks, plus `STATE_BLOCKS`: on Qwen3.5-9B, one DeltaNet state
+block in each of three state groups. The mean over the last half of each calibration cell, times
+the effective live conversation count, is the working set. "fits" is 2.0 times that and
+"pressure" is 0.7 times that, per replica, converted to bytes with `BLOCK_BYTES`. It writes
+`/workspace/m1/pressure-q35-9b.env`. Stop if it prints a warning. A pool below `MAX_MODEL_LEN`
+makes vLLM refuse to start. On Qwen3.5-9B, "fits" at 2.0 (4,464 blocks) is larger than the
+whole card (4,025 blocks), and `size_kv.py` warns about it.
 
 ## Main matrix
 

@@ -1,7 +1,6 @@
 # M1, routing-policy comparison on two replicas: <model>, <date> (UTC)
 
-<One paragraph: what this run measured, which phases ran, and the one-sentence result. Link the
-spec section the run follows (`docs/m1-router-spec.md`, Run protocol).>
+<One paragraph: what this run measured, which phases ran, and the one-sentence result.>
 
 ## Environment
 

@@ -95,8 +95,7 @@ uv run modal run bench/m1/modal/app.py --cpu --cmd "uv run ./size_kv.py /workspa
 
 To set the knee or the matrix's live conversations by hand without starting GPUs (calibrate.sh
 would start the replicas first), call `summarize.py` directly in a CPU call. The 2026-10-23
-run used this, with the knee at the throughput plateau (see the amendment in
-`docs/m1-router-spec.md`):
+run used this, with the knee set by hand at the throughput plateau:
 
 ```bash
 uv run modal run bench/m1/modal/app.py --cpu --cmd 'uv run ./summarize.py --calibrate /workspace/m1/results/calib/q35-9b/nocap --knee 192 --active 384 --write-knee /workspace/m1/knee.env && source ./env.sh && uv run ./size_kv.py /workspace/m1/results/calib/q35-9b/nocap'

@@ -1,6 +1,6 @@
 """OpenAI-compatible reverse proxy that picks a replica per request with a policy table.
 
-Configuration is environment variables; see docs/m1-router-spec.md, "Interfaces".
+Configuration is environment variables; `Config.from_env` lists them.
 """
 
 from __future__ import annotations

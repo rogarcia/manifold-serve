@@ -9,7 +9,7 @@ canary model deployments for LLM fleets on Kubernetes.
 > without breaking the ones in flight? `manifold-serve` is a working, measured exploration of those
 > questions on real hardware, at a budget an individual can afford.
 
-Built in public. Every design decision ships with a benchmark and a writeup: see `[docs/posts/](docs/posts/)`.
+Built in public. Every design decision ships with a benchmark. Writeups are published separately.
 
 ## Architecture
 
@@ -67,7 +67,7 @@ replicas on ports 8001 and 8002. On RunPod, follow `bench/m1/README.md`.
 
 ## Benchmarks
 
-M0 numbers (single replica, no router) live in the `runs.md` files under `bench/`. The router comparison table below fills in with M1, whose design is in `docs/m1-router-spec.md`. Every number published here is reproducible from `bench/`.
+M0 numbers (single replica, no router) live in the `runs.md` files under `bench/`. The router comparison table below fills in with M1, whose runbook is `bench/m1/README.md`. Every number published here is reproducible from `bench/`.
 
 
 | policy    | model | replicas | req/s | TTFT p50 | TTFT p99 | output tok/s |

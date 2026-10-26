@@ -9,7 +9,6 @@ description = "Cache-aware request routing, autoscaling, and canary deployments 
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Rodrigo Garcia da Silva" }]
 dependencies = [
     "fastapi>=0.115",
     "httpx>=0.27",

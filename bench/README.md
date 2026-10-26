@@ -11,4 +11,4 @@ Protocol per run:
 4. Commit the CSV plus a `runs.md` entry with the full command lines.
 
 M1 compares round_robin, least_load, session_hash and prefix_aware across load and KV-cache
-pressure. Its runbook is `bench/m1/README.md` and its design is `docs/m1-router-spec.md`.
+pressure. Its runbook is `bench/m1/README.md`.
