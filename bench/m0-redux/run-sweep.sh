@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Walkthrough §6 item 7: open-loop Poisson rate sweep with the M0 loadgen (manifold/loadgen),
+# Deferred item 7: open-loop Poisson rate sweep with the M0 loadgen (manifold/loadgen),
 # same protocol as bench/m0/sweep.sh (32 multi-turn sessions, 120 s per rate, max_tokens 120,
 # thinking off, 45 s warmup), on baseline and MTP k=5 (FlashInfer, recipe default).
 # The loadgen must be the version that counts tokens from usage, not SSE chunks.

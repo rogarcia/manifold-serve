@@ -75,7 +75,7 @@ acceptance — MTP acceptance is workload-dependent; measure on your own traffic
   1,568-token hybrid-GDN block boundary and get reused with the larger pool.
 3. **MTP-3 is a net loss here**: 37.6% acceptance, throughput collapse via KV starvation.
   Candidate rescue (untested): MTP with CUDA graphs on the drafter, or num_speculative_tokens=1-2.
-4. Recipe UI vs guide text disagree for 1x5090; the guide (eager, 32k) is correct. Reported upstream? TODO.
+4. Recipe UI vs guide text disagree for 1x5090; the guide (eager, 32k) is correct.
 
 
 
@@ -93,7 +93,7 @@ acceptance — MTP acceptance is workload-dependent; measure on your own traffic
 ## Correction
 
 Finding 1 as first written over-credits fp8 KV. **M0 also served** `kv_cache_dtype=fp8`
-(non-default args in `bench/m0/vllm-startup.log`), and tokens/GiB is identical across the A/B:
+(non-default args in the M0 server startup log, not in the repository), and tokens/GiB is identical across the A/B:
 53,399/2.12 GiB ≈ 92,235/3.64 GiB ≈ 25.3k tok/GiB. The 1.5 GiB pool gain is entirely *budget*:
 +0.94 GiB from util 0.92→0.95, +0.59 GiB from vLLM 0.26 using less non-KV memory than 0.27.1
 (26.14 vs 26.73 GiB weights+activation+non-torch, per the two `gpu_worker` startup lines).
@@ -103,4 +103,4 @@ kernels (whose TPOT under load is *worse*, 97 vs 75–83 ms).
 
 ## Cost
 
-Session actual: **$5.21** (balance $16.995 → $11.789; ~4.5 h GPU @ $0.99 + volume/overhead). M0: $3.00. Two-experiment total: $8.21.
+Session actual: **$5.21** (~4.5 h GPU @ $0.99 + volume/overhead). M0: $3.00. Two-experiment total: $8.21.

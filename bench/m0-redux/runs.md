@@ -1,5 +1,7 @@
 # M0-redux — Qwen3.8-27B-NVFP4 baseline vs MTP on one RTX PRO 6000 (2026-09-21)
 
+Raw results (`results/...` paths below) stay local and are not in the repository.
+
 Purpose: restart M0 with a clean one-variable comparison. M0 and M0-part2 (`bench/m0/runs.md`,
 `bench/m0-part2/runs.md`) were dominated by RTX 5090 toolchain and memory-fit problems, and
 part2's MTP result (28 tok/s, 37.6% acceptance) came from a server squeezed into 32 GB with
@@ -16,7 +18,7 @@ repeats. `bench.sh` defines most of those cells already.
 
 ## Environment
 
-- Pod: RunPod `xlrsclye40uuxm`, 1x NVIDIA RTX PRO 6000 Blackwell Server Edition 97,887 MiB,
+- Pod: RunPod, 1x NVIDIA RTX PRO 6000 Blackwell Server Edition 97,887 MiB,
   $2.09/hr, 32 vCPU / 125 GB, host CPU AMD EPYC 9554, kernel 6.8.0-124, Ubuntu 24.04.4
 - Image: `runpod/pytorch:1.0.7-cu1300-torch291-ubuntu2404-cluster` — nvcc 13.0.88, driver 580.159.04
 - Stack: vLLM **0.29.0**, torch 2.13.0+cu130, transformers 5.17.0, flashinfer-python 0.6.18,

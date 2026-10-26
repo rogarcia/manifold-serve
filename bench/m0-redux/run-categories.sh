@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Walkthrough §6 item 6, part 1: Spec-Bench categories (summarization, translation, RAG, QA)
+# Deferred item 6, part 1: Spec-Bench categories (summarization, translation, RAG, QA)
 # on baseline and MTP k=5, FlashInfer (recipe default), c=1, 40 prompts, greedy, thinking off.
 # Results: $M0/results/$RUN/<config>/...
 set -uo pipefail

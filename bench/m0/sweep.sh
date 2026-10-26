@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # M0 load sweep: open-loop Poisson arrivals at increasing rates against one vLLM replica.
 # Run ON the pod (no network noise): cd /workspace/manifold-serve && bash bench/m0/sweep.sh
+# Uses manifold.loadgen, which was removed after M0; run it from an M0-era checkout.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 BASE="${BASE:-http://localhost:8000}"

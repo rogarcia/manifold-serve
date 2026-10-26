@@ -13,7 +13,7 @@ changes them.
 | `runpodctl pod create`, SSH | `modal run`, one container per call |
 | `push.sh`: tar of the working tree | `app.py` mounts the working tree at `/root/repo` at container start, uncommitted edits included; `GIT_SHA` is written from the local `git` |
 | `/workspace`: the pod's network volume | `/workspace`: the Modal Volume `manifold-m1`, kept between calls |
-| `bootstrap.sh` installs the venv | the image carries `/root/.venv`, built from `bench/m1/results/manifest/pip-freeze.txt` (the 2026-10-23 pod); `bootstrap.sh` still downloads models and data and writes the manifest |
+| `bootstrap.sh` installs the venv | the image carries `/root/.venv`, built from `bench/m1/modal/pip-freeze.txt` (the 2026-10-23 pod); `bootstrap.sh` still downloads models and data and writes the manifest |
 | `bench/m1/.env` copied to the pod | `app.py` reads `HF_TOKEN` from `bench/m1/.env` and passes it as a Modal Secret; nothing else from that file is used |
 | `pull.sh HOST PORT` | `bench/m1/modal/pull.sh`, into `bench/m1/modal/results/` and `bench/m1/modal/logs/` |
 | `runpodctl pod delete` | nothing to delete: billing stops when the call returns |

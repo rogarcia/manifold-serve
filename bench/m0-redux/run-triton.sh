@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Follow-up to run-deferred.sh:
 #   - TTFT test (ttft-test.py) on baseline and MTP k=5, FlashInfer (default) and TRITON_ATTN
-#   - walkthrough §6 item 4: TRITON_ATTN vs FlashInfer. The startup log says FlashInfer lacks
+#   - deferred item 4: TRITON_ATTN vs FlashInfer. The startup log says FlashInfer lacks
 #     fused multi-step draft decode; TRITON_ATTN may not. Baseline runs on TRITON_ATTN too, since
 #     the flag changes the target model's attention as well, not only the draft path.
 # Results: $M0/results/$RUN/<config>[-triton]/...

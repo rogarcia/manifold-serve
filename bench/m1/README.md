@@ -27,7 +27,7 @@ GPU-hour is the rate M0 paid for one RTX PRO 6000 (`bench/m0-redux/runs-2026-09-
 2.49 USD column is a higher rate for comparison, not a verified listing. Check the rate
 when you book. The pod bills for both GPUs for the whole booking, including idle time between phases.
 
-The spec budgeted 10.5 GPU-hours for two replicas sharing one GPU, plus a separate isolation
+The original plan budgeted 10.5 GPU-hours for two replicas sharing one GPU, plus a separate isolation
 check on two devices. This plan puts each replica on its own GPU from the start, so the main
 matrix is already the isolated configuration and that separate check is not needed.
 
@@ -246,8 +246,8 @@ should gain most.
 block size), sizes its pressure pool from the Qwen3.5-9B calibration working set with its own
 block size and bytes per token, and runs the 70% and 95% pressure cells for the four policies
 with the primary model's client counts. The dense control matters more than its size suggests. The
-router hashes whole blocks only, so on Qwen3.5-9B any prompt shorter than one block (estimated
-at about 524 tokens before alignment in the spec's D4; bring-up reads the real value) gets a prefix score of 0 on both replicas and `prefix_aware` routes it
+router hashes whole blocks only, so on Qwen3.5-9B any prompt shorter than one block (bring-up reads the
+real block size) gets a prefix score of 0 on both replicas and `prefix_aware` routes it
 exactly as `least_load` does. Early ShareGPT turns are often that short, so the gain should appear from the third or
 fourth turn of a conversation on. On Qwen3-8B the block
 is 16 tokens and every turn carries prefix information. Its bring-up has the same gates as

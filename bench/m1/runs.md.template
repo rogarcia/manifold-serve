@@ -36,7 +36,7 @@
 
 ## Deviations
 
-<Every place this run differs from the spec or from bench/m1/README.md, and why. Include cells
+<Every place this run differs from the plan in bench/m1/README.md, and why. Include cells
 rerun after a failure and anything changed between phases.>
 
 ## Findings

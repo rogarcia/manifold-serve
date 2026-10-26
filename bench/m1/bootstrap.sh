@@ -74,7 +74,7 @@ n=$(python -c 'import json,sys; print(len(json.load(open(sys.argv[1]))))' "$DATA
 (( n >= 2000 )) || die "only $n ShareGPT conversations after filtering"
 sha256sum "$DATA/sharegpt.json" > "$DATA/sharegpt.json.sha256"
 # Same converter, flags and Python 3.12 on a laptop on 2026-10-16. A different hash means the
-# sample differs from the one the spec numbers were planned on; note it in the run record.
+# sample differs from the one the planned numbers were based on; note it in the run record.
 grep -q '^b5582436925c8ee8c5dd6e6789f465c5f7228450cda4176b62bc634990220134 ' "$DATA/sharegpt.json.sha256" \
   || log "WARNING: converted ShareGPT differs from the 2026-10-16 laptop conversion"
 

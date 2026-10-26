@@ -2,8 +2,7 @@
 # Run a fixed list of sharegpt cells in priority order, and never start a cell (plus the restart
 # it needs) that the running time estimates say cannot finish before the deadline. A skipped line
 # does not stop the run: a later line that needs no restart may still fit. Cells with DONE are
-# skipped, so rerunning resumes. Stops the replicas on exit. Replaces matrix.sh for a capped run:
-# the 2026-10-24 budget ceiling is about 2 pod-hours.
+# skipped, so rerunning resumes. Stops the replicas on exit. Replaces matrix.sh for a capped run.
 # Usage: BUDGET_MIN=110 budget.sh RUN
 #   BUDGET_MIN (required): minutes from now to the deadline.
 #   PLAN_FILE: lines "pressure load policy seed" in run order, replacing the plan below

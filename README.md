@@ -39,7 +39,7 @@ Built in public. Every design decision ships with a benchmark. Writeups are publ
 ## Roadmap
 
 - [x] **M0** (done 2026-09): Serve Qwen3.8-27B (NVFP4) with vLLM, async load generator, measured TTFT/TPOT/throughput curves and an MTP speculative-decoding A/B. Three rounds, run records in `bench/m0/runs.md`, `bench/m0-part2/runs.md`, `bench/m0-redux/runs.md`, and `bench/m0-redux/runs-2026-09-24.md`.
-- [ ] **M1**: Router v1 with pluggable policies; measured comparison: round-robin vs least-outstanding vs prefix-cache-aware
+- [ ] **M1** (in progress): Router v1 with pluggable policies; measured comparison: round-robin vs least-outstanding vs prefix-cache-aware. First results in `bench/m1/runs-2026-10-26.md`; the uncapped-pool run and a dense-model control remain.
 - [ ] **M2**: Custom-metrics autoscaler on Kubernetes; interactive vs batch workload classes; scale-to-zero on spot GPUs
 - [ ] **M3**: Canary model deployments gated by automated evals, auto-promote/rollback
 - [ ] **M4**: Rust port of the router data plane (axum/tokio), side-by-side latency comparison
@@ -79,7 +79,7 @@ the throughput knee, with a KV pool that holds 0.7 of the working set. Two seeds
 | -------------- | -------- | -------- | --------------------- |
 | `least_load`   | 158 ms   | 282 ms   | 0.24                  |
 | `session_hash` | 148 ms   | 264 ms   | 0.38                  |
-| `prefix_aware` | 144 ms   | 242 ms   | 0.39                  |
+| `prefix_aware` | 144 ms   | 242 ms   | 0.39 to 0.40          |
 
 ![p90 TTFT by policy](bench/m1/charts/ttft_by_policy.svg)
 

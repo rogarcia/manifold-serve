@@ -2,7 +2,7 @@
 # M0: single vLLM replica of Qwen3.8-27B (NVFP4) on one RTX 5090 (32 GB, Blackwell sm_120).
 # Source: https://recipes.vllm.ai/Qwen/Qwen3.8-27B?hardware=rtx_5090&variant=nvfp4
 #
-# Why each flag (see .scratch/m0-runpod-walkthrough.md for the long version):
+# Why each flag:
 #   --kv-cache-dtype fp8   KV cache in 8-bit -> ~2x more tokens of context fit in the same VRAM
 #   --enforce-eager        skip CUDA-graph capture; on a 32 GB card capture OOMs at startup (recipe note)
 #   --max-model-len 32768  the context ceiling that fits next to ~18 GB of NVFP4 weights with headroom

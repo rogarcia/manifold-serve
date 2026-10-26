@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deferred items from the 2026-09-21 run (walkthrough §6), on baseline and MTP k=5,7:
+# Deferred items from the 2026-09-21 run, on baseline and MTP k=5,7:
 #   1. chat c1 repeat on a fresh server + chunk-timing probe (TTFT gap 170 vs 110 ms)
 #   2. seed repeats: code c1 seeds 1,2,3 and code c8 seeds 8,9,10 (seed 1/8 = the 09-21 cells, the anchor)
 #   3. sampling at Qwen non-thinking settings (T=0.7 top_p 0.8 top_k 20) on the same prompts

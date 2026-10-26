@@ -33,7 +33,7 @@ TIMEOUT_S = int(os.environ.get("M1_TIMEOUT_S", 24 * 3600))
 # Same CUDA toolkit major and minor as the RunPod image of 2026-10-23 (nvcc 13.2): FlashInfer
 # JIT-compiles its kernels with it. Modal's driver supports CUDA 13.3.
 CUDA_IMAGE = "nvidia/cuda:13.2.1-devel-ubuntu24.04"
-FREEZE = BENCH / "results/manifest/pip-freeze.txt"
+FREEZE = Path(__file__).parent / "pip-freeze.txt"
 
 # Directories never sent to the container: VCS, environments, caches, local results and logs.
 SKIP_DIRS = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", ".ruff_cache", ".scratch",
