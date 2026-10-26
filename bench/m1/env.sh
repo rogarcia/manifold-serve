@@ -45,6 +45,10 @@ export PORT_A=${PORT_A:-18001} PORT_B=${PORT_B:-18002} ROUTER_PORT=${ROUTER_PORT
 export URL_A=http://localhost:$PORT_A URL_B=http://localhost:$PORT_B ROUTER_URL=http://localhost:$ROUTER_PORT
 export MAX_MODEL_LEN=${MAX_MODEL_LEN:-32768}
 export MAX_NUM_BATCHED_TOKENS=${MAX_NUM_BATCHED_TOKENS:-8192}
+# vLLM's default of 1024 needs one Mamba state block per sequence, and the q35-9b pressure pool has
+# only 840, so the engine refuses to start. 512 is above any load the bench offers one replica (at most
+# 256 clients) and equals the largest CUDA graph size, so the captured graphs match calibration's.
+export MAX_NUM_SEQS=${MAX_NUM_SEQS:-512}
 export GPU_MEMORY_UTILIZATION=${GPU_MEMORY_UTILIZATION:-0.90}
 
 # Live conversations in the bench. Fixed across load levels so the working set stays fixed.
@@ -81,4 +85,4 @@ done
 export ACTIVE=${ACTIVE_FROM_CALLER:-${MATRIX_ACTIVE:-64}}
 
 # Names re-exported into processes started in tmux, whose environment is the tmux server's.
-LAUNCH_VARS="REPO WORKSPACE M1 VENV HF_HOME MODEL_TAG REV_Q35_9B REV_Q3_8B PORT_A PORT_B ROUTER_PORT MAX_MODEL_LEN MAX_NUM_BATCHED_TOKENS GPU_MEMORY_UTILIZATION SIM SIM_BLOCK_TOKENS SIM_KV_BLOCKS SIM_FLAGS SIM_BYTES_PER_TOKEN"
+LAUNCH_VARS="REPO WORKSPACE M1 VENV HF_HOME MODEL_TAG REV_Q35_9B REV_Q3_8B PORT_A PORT_B ROUTER_PORT MAX_MODEL_LEN MAX_NUM_BATCHED_TOKENS MAX_NUM_SEQS GPU_MEMORY_UTILIZATION SIM SIM_BLOCK_TOKENS SIM_KV_BLOCKS SIM_FLAGS SIM_BYTES_PER_TOKEN"

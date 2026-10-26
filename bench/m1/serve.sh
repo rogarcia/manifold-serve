@@ -49,6 +49,7 @@ start_replica() {
       --enable-prefix-caching \
       --max-model-len "$MAX_MODEL_LEN" \
       --max-num-batched-tokens "$MAX_NUM_BATCHED_TOKENS" \
+      --max-num-seqs "$MAX_NUM_SEQS" \
       --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
       ${KV_BYTES:+--kv-cache-memory-bytes "$KV_BYTES"} \
       --seed 0 \
