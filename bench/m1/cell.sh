@@ -49,8 +49,8 @@ wait_idle 60
 canary "$URL_A" || die "canary failed on replica A"
 canary "$URL_B" || die "canary failed on replica B"
 
-scrape "$URL_A" > "$CELL/metrics_before_a.txt"
-scrape "$URL_B" > "$CELL/metrics_before_b.txt"
+scrape "$URL_A" > "$CELL/metrics_before_a.txt" || die "metrics scrape failed on $URL_A"
+scrape "$URL_B" > "$CELL/metrics_before_b.txt" || die "metrics scrape failed on $URL_B"
 python "$BENCH_DIR/sampler.py" "$CELL/samples.tsv" "a=$URL_A" "b=$URL_B" &
 SAMPLER_PID=$!
 
@@ -68,8 +68,8 @@ T_END=$(date -u +%s)
 # On Linux the client processes are forks with the same command line; a timeout leaves them running.
 if (( rc == 124 )); then pkill -f "$BENCH_DIR/run_bench.py" || true; fi
 kill "$SAMPLER_PID" 2>/dev/null || true; SAMPLER_PID=""
-scrape "$URL_A" > "$CELL/metrics_after_a.txt"
-scrape "$URL_B" > "$CELL/metrics_after_b.txt"
+scrape "$URL_A" > "$CELL/metrics_after_a.txt" || die "metrics scrape failed on $URL_A"
+scrape "$URL_B" > "$CELL/metrics_after_b.txt" || die "metrics scrape failed on $URL_B"
 scrape "$ROUTER_URL" > "$CELL/router_metrics_after.txt" || true
 "$BENCH_DIR/router.sh" stop
 (( rc == 0 )) || { tail -30 "$CELL/bench.log" >&2; die "bench exited $rc (124 = timeout)"; }

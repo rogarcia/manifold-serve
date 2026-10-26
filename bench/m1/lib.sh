@@ -48,7 +48,8 @@ wait_http() {
   return 1
 }
 
-scrape() { curl -sf --max-time 10 "$1/metrics"; }
+# Retried: on 2026-10-26 an idle replica's /metrics once gave no answer within 10 s.
+scrape() { curl -sf --max-time 10 --retry 3 --retry-all-errors --retry-delay 2 "$1/metrics"; }
 
 # Sum of every sample of metric NAME (all label sets) in Prometheus text on stdin.
 metric_sum() {
