@@ -1,0 +1,5 @@
+# 2026-10-26: the pressure pool resized in engine blocks (1,562 blocks, 0.7 of the working set
+# with recurrent state counted). Does affinity routing beat least_load once a replica's half of
+# the conversations fits?
+pressure 95 least_load   1
+pressure 95 prefix_aware 1

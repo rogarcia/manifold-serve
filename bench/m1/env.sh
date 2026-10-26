@@ -31,6 +31,17 @@ case "$MODEL_TAG" in
   q3-8b)  MODEL=Qwen/Qwen3-8B;   MODEL_FLAGS="";                      REV_VAR=REV_Q3_8B ;;
   *) echo "unknown MODEL_TAG: $MODEL_TAG (q35-9b | q3-8b)" >&2; return 2 2>/dev/null || exit 2 ;;
 esac
+# Pool sizing in engine blocks (size_kv.py). On Qwen3.5 the serve log shows four KV cache groups,
+# one attention and three DeltaNet, so each conversation also holds a state block in each DeltaNet
+# group. A block is 8 attention layers x 528 tokens x 4 KiB; 14,543,479,531 bytes gave 840 blocks
+# on 2026-10-26. A dense model has one group, and its block is BYTES_PER_TOKEN x BLOCK_TOKENS.
+case "$MODEL_TAG" in
+  q35-9b) STATE_BLOCKS=3; BLOCK_BYTES=17301504 ;;
+  *)      STATE_BLOCKS=0; BLOCK_BYTES="" ;;
+esac
+# The sim keeps no recurrent state.
+[ "${SIM:-0}" = 1 ] && STATE_BLOCKS=0 && BLOCK_BYTES=""
+export STATE_BLOCKS BLOCK_BYTES
 # Derived from MODEL_TAG on every source and not exported, so a child run for another model
 # never inherits them.
 MODEL_REVISION=${!REV_VAR:-main}

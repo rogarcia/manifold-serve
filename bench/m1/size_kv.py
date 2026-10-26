@@ -6,10 +6,13 @@
 
   uv run size_kv.py CALIB_ROOT [--model-tag q35-9b] [--m1 /workspace/m1] [--active 64]
 
-Working set = live conversations (the calibration cells' effective -k) x mean context of one live conversation, where a conversation's context
-is a request's input plus output tokens, rounded up to whole engine blocks, over the last half
-of each calibration cell. fits = 2.0 x working set, pressure = 0.7 x working set, per replica.
-Bytes per token come from the uncapped pool line at bring-up (available KV memory / KV tokens).
+The unit is the engine block, because that is what vLLM allocates. One live conversation holds
+its context (a request's input plus output tokens, rounded up to whole blocks, over the last half
+of each calibration cell) plus STATE_BLOCKS: on a hybrid model, one recurrent-state block in each
+DeltaNet group. Working set = live conversations (the calibration cells' effective -k) x mean
+blocks of one conversation. fits = 2.0 x working set, pressure = 0.7 x working set, per replica.
+Bytes per block are BLOCK_BYTES, or BYTES_PER_TOKEN from bring-up x the block size on a dense
+model. STATE_BLOCKS and BLOCK_BYTES come from env.sh.
 Writes $M1/pressure-<tag>.env and prints the arithmetic.
 """
 
@@ -32,11 +35,12 @@ def read_env(path: Path) -> dict[str, str]:
     return out
 
 
-def cell_contexts(cell: Path, block: int) -> list[int]:
+def cell_blocks(cell: Path, block: int) -> list[int]:
+    """Context blocks of each request in the last half of the cell, recurrent state excluded."""
     recs = json.loads((cell / "stats.json").read_text())
     recs.sort(key=lambda r: r["start_time_ms"])
     late = recs[len(recs) // 2 :]
-    return [math.ceil((r["input_num_tokens"] + r["output_num_tokens"]) / block) * block for r in late]
+    return [math.ceil((r["input_num_tokens"] + r["output_num_tokens"]) / block) for r in late]
 
 
 def main() -> None:
@@ -47,11 +51,19 @@ def main() -> None:
     ap.add_argument("--active", type=int, help="live conversations in the matrix; default: $ACTIVE when set "
                     "(env.sh: the caller's, else MATRIX_ACTIVE from knee.env), else the most the calibration cells ran with")
     ap.add_argument("--max-model-len", type=int, default=int(os.environ.get("MAX_MODEL_LEN", "32768")))
+    ap.add_argument("--state-blocks", type=int, default=os.environ.get("STATE_BLOCKS"),
+                    help="recurrent-state blocks per conversation; default: $STATE_BLOCKS from env.sh")
+    ap.add_argument("--block-bytes", type=int, default=int(os.environ.get("BLOCK_BYTES") or 0) or None)
     a = ap.parse_args()
+    if a.state_blocks is None:
+        raise SystemExit("STATE_BLOCKS is unset: source env.sh first, or pass --state-blocks")
+    a.state_blocks = int(a.state_blocks)
 
     facts = read_env(a.m1 / f"bringup-{a.model_tag}.env")
     block, pool = int(facts["BLOCK_TOKENS"]), int(facts["KV_TOKENS"])
     bpt = float(facts["BYTES_PER_TOKEN"]) if facts.get("BYTES_PER_TOKEN") else None
+    block_bytes = a.block_bytes or (round(bpt * block) if bpt else None)
+    uncapped = int(float(facts["KV_GIB"]) * 2**30 / block_bytes) if block_bytes and facts.get("KV_GIB") else pool // block
 
     cells = sorted(p.parent for p in a.calib_root.rglob("DONE") if (p.parent / "stats.json").exists())
     if not cells:
@@ -64,28 +76,32 @@ def main() -> None:
         if len(actives) > 1:
             print(f"WARNING: calibration cells ran with different live conversation counts {actives}; using {a.active}")
     pooled: list[int] = []
-    print(f"bring-up ({a.model_tag}): block {block} tokens, uncapped pool {pool:,} tokens per replica, "
-          f"{'%.1f bytes per token' % bpt if bpt else 'no byte size (sim)'}")
+    print(f"bring-up ({a.model_tag}): block {block} tokens, {a.state_blocks} state blocks per conversation, "
+          f"uncapped pool {uncapped:,} blocks per replica, "
+          f"{f'{block_bytes:,} bytes per block' if block_bytes else 'no byte size (sim)'}")
     for c in cells:
-        ctx = cell_contexts(c, block)
-        pooled += ctx
-        print(f"  {c.relative_to(a.calib_root)}: {len(ctx)} late requests, mean context {statistics.mean(ctx):,.0f} tokens")
-    mean_ctx = statistics.mean(pooled)
-    ws = a.active * mean_ctx
-    print(f"mean context (block-rounded) {mean_ctx:,.0f} tokens x {a.active} live conversations = working set {ws:,.0f} tokens")
+        blocks = cell_blocks(c, block)
+        pooled += blocks
+        print(f"  {c.relative_to(a.calib_root)}: {len(blocks)} late requests, mean context {statistics.mean(blocks):.2f} blocks")
+    per_conv = statistics.mean(pooled) + a.state_blocks
+    ws = a.active * per_conv
+    print(f"{statistics.mean(pooled):.2f} context + {a.state_blocks} state = {per_conv:.2f} blocks per conversation"
+          f" x {a.active} live conversations = working set {ws:,.0f} blocks")
 
-    env = {"WORKING_SET_TOKENS": round(ws)}
+    env = {"WORKING_SET_BLOCKS": round(ws)}
     for label, mult in (("fits", FITS), ("pressure", PRESSURE)):
-        tokens = round(mult * ws)
-        env[f"KV_TOKENS_{label}"] = tokens
-        line = f"{label}: {mult} x {ws:,.0f} = {tokens:,} tokens"
-        if bpt:
-            env[f"KV_BYTES_{label}"] = round(tokens * bpt)
-            line += f" x {bpt:.1f} B = {env[f'KV_BYTES_{label}']:,} bytes ({env[f'KV_BYTES_{label}'] / 2**30:.2f} GiB)"
+        blocks = round(mult * ws)
+        env[f"KV_BLOCKS_{label}"] = blocks
+        # Attention capacity in tokens: the sim's pool and the canary's prompt cap read it.
+        env[f"KV_TOKENS_{label}"] = blocks * block
+        line = f"{label}: {mult} x {ws:,.0f} = {blocks:,} blocks"
+        if block_bytes:
+            env[f"KV_BYTES_{label}"] = blocks * block_bytes
+            line += f" x {block_bytes:,} B = {env[f'KV_BYTES_{label}']:,} bytes ({env[f'KV_BYTES_{label}'] / 2**30:.2f} GiB)"
         print(line)
-        if tokens > pool:
-            print(f"  WARNING: {label} asks for more than the uncapped pool ({pool:,} tokens); vLLM will not start")
-        if tokens < a.max_model_len:
+        if blocks > uncapped:
+            print(f"  WARNING: {label} asks for more than the uncapped pool ({uncapped:,} blocks); vLLM will not start")
+        if blocks * block < a.max_model_len:
             print(f"  WARNING: {label} is below MAX_MODEL_LEN {a.max_model_len:,}; vLLM refuses a pool that cannot hold one full-length request")
     out = a.m1 / f"pressure-{a.model_tag}.env"
     out.write_text("".join(f"{k}={v}\n" for k, v in env.items()))
