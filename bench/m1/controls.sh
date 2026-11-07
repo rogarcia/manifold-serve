@@ -7,6 +7,7 @@ set -euo pipefail
 RUN=${1:?usage: controls.sh RUN}
 D=$(dirname "$0")
 rc=0
-WORKLOAD=w0 PRESSURES=pressure LOADS=70 SEEDS=${SEEDS:-1} "$D/matrix.sh" "$RUN" || rc=1
+# One-turn conversations run out near 30 per client, so the knee.env count (57) is never reached.
+NREQ=3350 WORKLOAD=w0 PRESSURES=pressure LOADS=70 SEEDS=${SEEDS:-1} "$D/matrix.sh" "$RUN" || rc=1
 WORKLOAD=w2 PRESSURES=pressure LOADS=70 SEEDS=${SEEDS:-1} "$D/matrix.sh" "$RUN" || rc=1
 exit "$rc"

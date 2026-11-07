@@ -116,6 +116,15 @@ uv run modal run --detach bench/m1/modal/app.py --cmd "./controls.sh $RUN"
 uv run modal run --detach bench/m1/modal/app.py --cmd "./control-model.sh $RUN"
 ```
 
+The 2026-11-07 dense control ran in three calls so the calibration could be read before the
+cells. `KNEE_FILE` keeps the primary model's `knee.env`, and the client counts stay the primary's:
+
+```bash
+uv run modal run --detach bench/m1/modal/app.py --cmd "./bringup.sh q3-8b && MODEL_TAG=q3-8b ACTIVE=64 CALIB_REQ_PER_CLIENT=80 CALIB_CLIENTS='64 96 128 192 256' KNEE_FILE=/workspace/m1/knee-q3-8b.env ./calibrate.sh calib"
+uv run modal run bench/m1/modal/app.py --cpu --cmd 'export MODEL_TAG=q3-8b; source ./env.sh; uv run ./size_kv.py /workspace/m1/results/calib/q35-9b/nocap --model-tag q3-8b'
+MODEL_TAG=q3-8b PLAN_FILE=plans/dense-control.txt bench/m1/modal/budget.sh m1-2026-11-07-dense 100
+```
+
 For a run capped in money rather than cells, `bench/m1/modal/budget.sh RUN CAP_MIN` starts
 `bench/m1/budget.sh` (the priority-ordered cell list) detached, with the Function timeout set to
 `CAP_MIN` and the budget.sh deadline fixed at launch time minus 5 minutes. A preempted call

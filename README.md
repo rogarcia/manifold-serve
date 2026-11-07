@@ -34,18 +34,14 @@ Built in public. Every design decision ships with a benchmark. Writeups are publ
                     priority + preemption; scale-to-zero on spot
 ```
 
-
-
 ## Roadmap
 
 - [x] **M0** (done 2026-09): Serve Qwen3.8-27B (NVFP4) with vLLM, async load generator, measured TTFT/TPOT/throughput curves and an MTP speculative-decoding A/B. Three rounds, run records in `bench/m0/runs.md`, `bench/m0-part2/runs.md`, `bench/m0-redux/runs.md`, and `bench/m0-redux/runs-2026-09-24.md`.
-- [ ] **M1** (in progress): Router v1 with pluggable policies; measured comparison: round-robin vs least-outstanding vs prefix-cache-aware. First results in `bench/m1/runs-2026-10-26.md`; the uncapped-pool run and a dense-model control remain.
+- [x] **M1** (in progress): Router v1 with pluggable policies; measured comparison: round-robin vs least-outstanding vs prefix-cache-aware. Measurements in `bench/m1/runs-2026-10-26.md` and, for the dense-model control and the W0 harness check, `bench/m1/runs-2026-11-07-dense.md`. The uncapped-pool run and the W2 control were not run.
 - [ ] **M2**: Custom-metrics autoscaler on Kubernetes; interactive vs batch workload classes; scale-to-zero on spot GPUs
 - [ ] **M3**: Canary model deployments gated by automated evals, auto-promote/rollback
 - [ ] **M4**: Rust port of the router data plane (axum/tokio), side-by-side latency comparison
 - [ ] **M5**: Two-region latency-aware routing + failover; fleet-scale discrete-event simulator
-
-
 
 ## Quickstart
 

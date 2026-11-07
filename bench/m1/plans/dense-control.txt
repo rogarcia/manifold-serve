@@ -1,0 +1,14 @@
+# Dense control: Qwen3-8B at the primary model's client counts, pool 0.7 of the working set.
+# Run with MODEL_TAG=q3-8b. All 70% and 95% cells on seed 1, then a second seed at 95% for the
+# three policies that have two seeds at 1,562 blocks on Qwen3.5-9B.
+pressure 95 least_load   1
+pressure 95 prefix_aware 1
+pressure 95 session_hash 1
+pressure 95 round_robin  1
+pressure 70 least_load   1
+pressure 70 prefix_aware 1
+pressure 70 session_hash 1
+pressure 70 round_robin  1
+pressure 95 least_load   2
+pressure 95 prefix_aware 2
+pressure 95 session_hash 2

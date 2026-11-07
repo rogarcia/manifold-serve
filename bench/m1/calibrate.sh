@@ -6,6 +6,7 @@
 #   live conversations), CALIB_REQ_PER_CLIENT (40), CALIB_MIN_NREQ (200),
 #   CALIB_SEED (0). KNEE=N overrides the knee the rule picks. MATRIX_ACTIVE=N writes it into
 #   knee.env; env.sh then uses it for ACTIVE (the matrix's live conversations) unless ACTIVE is set.
+#   KNEE_FILE writes the result elsewhere, so a control model does not replace the primary's knee.env.
 set -euo pipefail
 RUN=${1:-calib}
 source "$(dirname "$0")/env.sh"
@@ -25,5 +26,5 @@ done
 
 uv run "$BENCH_DIR/summarize.py" --calibrate "$RESULTS/$RUN/$MODEL_TAG/nocap" \
   --warmup-s "$WARMUP_S" --slo-ms "$SLO_MS" --duration-s "$DURATION_S" \
-  --write-knee "$M1/knee.env" ${KNEE:+--knee "$KNEE"} ${MATRIX_ACTIVE:+--active "$MATRIX_ACTIVE"}
+  --write-knee "${KNEE_FILE:-$M1/knee.env}" ${KNEE:+--knee "$KNEE"} ${MATRIX_ACTIVE:+--active "$MATRIX_ACTIVE"}
 log "$failed calibration cells failed. Check the table, then: uv run $BENCH_DIR/size_kv.py $RESULTS/$RUN/$MODEL_TAG/nocap"

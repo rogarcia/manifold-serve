@@ -6,6 +6,7 @@
 # Usage: bench/m1/modal/budget.sh RUN CAP_MIN      e.g. bench/m1/modal/budget.sh m1-2026-10-26 115
 #   STOP_MIN (5): minutes kept back from the deadline for stop.sh and the Volume commit.
 #   PLAN_FILE: passed to budget.sh, relative to bench/m1 (e.g. plans/pressure-recheck.txt).
+#   MODEL_TAG: passed to budget.sh (default q35-9b).
 set -euo pipefail
 RUN=${1:?usage: budget.sh RUN CAP_MIN}
 CAP_MIN=${2:?usage: budget.sh RUN CAP_MIN}
@@ -13,5 +14,5 @@ CAP_MIN=${2:?usage: budget.sh RUN CAP_MIN}
 D=$(cd "$(dirname "$0")" && pwd)
 deadline=$(( $(date +%s) + (CAP_MIN - ${STOP_MIN:-5}) * 60 ))
 echo "cap ${CAP_MIN} min per container; budget.sh deadline $(date -r "$deadline" '+%F %T %Z')"
-cmd="${PLAN_FILE:+PLAN_FILE=$PLAN_FILE }BUDGET_MIN=\$(( ($deadline - \$(date +%s)) / 60 )) ./budget.sh $RUN 2>&1 | tee -a /workspace/m1/logs/budget.log"
+cmd="${MODEL_TAG:+MODEL_TAG=$MODEL_TAG }${PLAN_FILE:+PLAN_FILE=$PLAN_FILE }BUDGET_MIN=\$(( ($deadline - \$(date +%s)) / 60 )) ./budget.sh $RUN 2>&1 | tee -a /workspace/m1/logs/budget.log"
 M1_TIMEOUT_S=$(( CAP_MIN * 60 )) uv run --no-sync modal run --detach "$D/app.py" --cmd "$cmd"

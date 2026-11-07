@@ -4,6 +4,7 @@
 # Usage: matrix.sh RUN
 #   PRESSURES ("fits pressure"), SEEDS ("1 2"), LOADS ("30 70 95", percent of the knee),
 #   WORKLOAD (sharegpt), MAX_CONSEC_FAIL (2). MODEL_TAG picks the model (q35-9b).
+#   NREQ replaces the request count from knee.env.
 #   Client counts and request counts per load come from $M1/knee.env (summarize.py --calibrate).
 set -euo pipefail
 RUN=${1:?usage: matrix.sh RUN}
@@ -53,7 +54,7 @@ for p in $PRESSURES; do
   while read -r s f k; do
     n=$(( n + 1 )); total=$(( total + 1 ))
     log "[$p $n/$(plan | wc -l | tr -d ' ')] seed $s load $f% $k"
-    if LOAD_LABEL=$f "$BENCH_DIR/cell.sh" "$RUN" "$WORKLOAD" "$k" "$(clients_for "$f")" "$s" "$(nreq_for "$f")" </dev/null; then
+    if LOAD_LABEL=$f "$BENCH_DIR/cell.sh" "$RUN" "$WORKLOAD" "$k" "$(clients_for "$f")" "$s" "${NREQ:-$(nreq_for "$f")}" </dev/null; then
       consec=0
     else
       failed=$(( failed + 1 )); consec=$(( consec + 1 ))
