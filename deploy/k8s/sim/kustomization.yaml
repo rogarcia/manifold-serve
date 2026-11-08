@@ -1,0 +1,44 @@
+# The same objects with manifold.sim in place of vLLM, for a laptop with no GPU. Timers are short
+# so that verify.sh finishes in minutes. Pods, probes, SIGTERM and scale stay real.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+patches:
+  - path: engine.yaml
+    target:
+      kind: StatefulSet
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: router
+      spec:
+        template:
+          spec:
+            containers:
+              - name: router
+                env:
+                  - name: MANIFOLD_TOKENIZER
+                    value: bytes
+                  - name: MANIFOLD_BLOCK_TOKENS
+                    value: "16"
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 256Mi
+                  limits:
+                    memory: 512Mi
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: autoscaler
+      spec:
+        template:
+          spec:
+            containers:
+              - name: autoscaler
+                env:
+                  - name: MANIFOLD_SPEC
+                    value: '{"max_replicas": 2, "target_interactive": 2, "up_window_s": 2, "settle_s": 5, "down_window_s": 30, "idle_to_zero_s": 20}'

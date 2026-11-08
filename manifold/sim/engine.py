@@ -27,6 +27,9 @@ class SimConfig:
     max_num_seqs: int = 16
     prefill_us_per_token: float = 50.0
     decode_ms_per_token: float = 8.0
+    # M1 calibration: TPOT is 11.5 + 0.21 N ms at N running requests, which is what makes
+    # concurrency the queue on a real engine.
+    decode_ms_per_running: float = 0.0
     seed: int = 0
 
 
@@ -111,7 +114,8 @@ class Engine:
             output = bytearray()
             for i in range(max_tokens):
                 if i:
-                    await asyncio.sleep(cfg.decode_ms_per_token / 1000)
+                    per_token = cfg.decode_ms_per_token + cfg.decode_ms_per_running * self.running
+                    await asyncio.sleep(per_token / 1000)
                 text = self._rng.choice(_WORDS) + " "
                 output += text.encode()
                 grown = math.ceil((len(tokens) + len(output)) / cfg.block_tokens)

@@ -86,7 +86,11 @@ def create_app(config: SimConfig) -> FastAPI:
 
         if not body.get("stream"):
             async with aclosing(engine.generate(tokens, max_tokens)) as gen:
-                parts = [t async for t in gen]
+                parts = []
+                async for text in gen:
+                    parts.append(text)
+                    if await request.is_disconnected():
+                        return Response(status_code=499)
             return JSONResponse({
                 "id": rid, "object": "chat.completion", "created": created,
                 "model": config.model,
@@ -126,7 +130,13 @@ def main() -> None:
     p.add_argument("--max-num-seqs", type=int, default=SimConfig.max_num_seqs)
     p.add_argument("--prefill-us-per-token", type=float, default=SimConfig.prefill_us_per_token)
     p.add_argument("--decode-ms-per-token", type=float, default=SimConfig.decode_ms_per_token)
+    p.add_argument("--decode-ms-per-running", type=float,
+                   default=SimConfig.decode_ms_per_running)
     p.add_argument("--seed", type=int, default=SimConfig.seed)
+    p.add_argument("--start-delay-s", type=float, default=0.0,
+                   help="sleep before binding the port, as an engine does while it loads")
+    p.add_argument("--shutdown-timeout-s", type=int, default=None,
+                   help="after SIGTERM, wait this long for running requests")
     a = p.parse_args()
     if min(a.block_tokens, a.kv_blocks, a.max_num_seqs) < 1:
         p.error("--block-tokens, --kv-blocks and --max-num-seqs must be positive")
@@ -134,10 +144,13 @@ def main() -> None:
                         datefmt="%m-%d %H:%M:%S")
     config = SimConfig(model=a.model, block_tokens=a.block_tokens, kv_blocks=a.kv_blocks,
                        max_num_seqs=a.max_num_seqs, prefill_us_per_token=a.prefill_us_per_token,
-                       decode_ms_per_token=a.decode_ms_per_token, seed=a.seed)
+                       decode_ms_per_token=a.decode_ms_per_token,
+                       decode_ms_per_running=a.decode_ms_per_running, seed=a.seed)
     import uvicorn
 
-    uvicorn.run(create_app(config), host=a.host, port=a.port, log_level="warning")
+    time.sleep(a.start_delay_s)
+    uvicorn.run(create_app(config), host=a.host, port=a.port, log_level="warning",
+                timeout_graceful_shutdown=a.shutdown_timeout_s)
 
 
 if __name__ == "__main__":

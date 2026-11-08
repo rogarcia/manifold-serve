@@ -38,7 +38,7 @@ Built in public. Every design decision ships with a benchmark. Writeups are publ
 
 - [x] **M0** (done 2026-09): Serve Qwen3.8-27B (NVFP4) with vLLM, async load generator, measured TTFT/TPOT/throughput curves and an MTP speculative-decoding A/B. Three rounds, run records in `bench/m0/runs.md`, `bench/m0-part2/runs.md`, `bench/m0-redux/runs.md`, and `bench/m0-redux/runs-2026-09-24.md`.
 - [x] **M1** (in progress): Router v1 with pluggable policies; measured comparison: round-robin vs least-outstanding vs prefix-cache-aware. Measurements in `bench/m1/runs-2026-10-26.md` and, for the dense-model control and the W0 harness check, `bench/m1/runs-2026-11-07-dense.md`. The uncapped-pool run and the W2 control were not run.
-- [ ] **M2**: Custom-metrics autoscaler on Kubernetes; interactive vs batch workload classes; scale-to-zero on spot GPUs
+- [ ] **M2** (built, not yet measured): Custom-metrics autoscaler on Kubernetes; interactive vs batch workload classes; scale-to-zero on spot GPUs. The control loop is in `manifold/autoscaler`, the harness and pass rules in `bench/m2`, the manifests in `deploy/k8s`.
 - [ ] **M3**: Canary model deployments gated by automated evals, auto-promote/rollback
 - [ ] **M4**: Rust port of the router data plane (axum/tokio), side-by-side latency comparison
 - [ ] **M5**: Two-region latency-aware routing + failover; fleet-scale discrete-event simulator
@@ -56,6 +56,9 @@ MANIFOLD_BACKENDS="http://localhost:8001,http://localhost:8002" \
 MANIFOLD_POLICY=prefix_aware \
 uv run python -m manifold.router
 ```
+
+For the autoscaler, `bench/m2/dryrun-local.sh` runs the probe, every cell and the pass rules against
+simulators that start slowly, including a killed autoscaler and an injected reclaim.
 
 `bench/m1/dryrun-local.sh` runs the whole M1 benchmark pipeline this way, with vLLM's multi-turn
 benchmark as the load generator. On a GPU box, `deploy/docker-compose.yml` starts two real vLLM

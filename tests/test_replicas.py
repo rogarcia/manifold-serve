@@ -1,6 +1,6 @@
 import pytest
 
-from manifold.router.replicas import Replica, parse_vllm_metrics
+from manifold.router.replicas import parse_vllm_metrics
 
 # Shaped like vLLM 0.x /metrics with data parallel size 2: two engine label sets per family.
 VLLM_METRICS = """\
@@ -50,11 +50,3 @@ def test_parse_sums_counts_and_averages_kv_usage():
 def test_parse_missing_families_reads_as_idle():
     g = parse_vllm_metrics("", ts=0.0)
     assert (g.waiting, g.running, g.kv_usage, g.prefix_hits_total) == (0, 0, 0.0, 0)
-
-
-def test_in_flight_is_released_when_the_body_raises():
-    r = Replica(url="http://r0", index=0)
-    with pytest.raises(RuntimeError), r.in_flight(300):
-        assert (r.in_flight_tokens, r.in_flight_requests) == (300, 1)
-        raise RuntimeError("upstream died")
-    assert (r.in_flight_tokens, r.in_flight_requests) == (0, 0)

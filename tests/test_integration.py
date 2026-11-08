@@ -16,9 +16,9 @@ from manifold.sim.engine import SimConfig
 SIM_A, SIM_B = "http://sim-a", "http://sim-b"
 SYSTEM = "You are a terse assistant. " * 40
 DECISION_FIELDS = {
-    "request_id", "session_id", "policy", "chosen", "replica_index", "spilled", "prompt_tokens",
-    "total_blocks", "matched_blocks", "scores", "t_received", "t_sent", "t_first_byte", "t_done",
-    "status", "error",
+    "request_id", "session_id", "class", "policy", "chosen", "replica_index", "spilled",
+    "prompt_tokens", "total_blocks", "matched_blocks", "scores", "attempts", "preemptions",
+    "t_received", "t_granted", "t_sent", "t_first_byte", "t_done", "status", "error",
 }
 
 

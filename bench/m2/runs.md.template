@@ -1,0 +1,72 @@
+# M2, autoscaler on two replicas: <model>, <date> (UTC)
+
+<One paragraph: which cells ran, which rules passed and failed, and the one-sentence result.>
+
+## Claims
+
+Allowed, with this run as evidence:
+
+- On one synthetic trace on two RTX PRO 6000, one Python policy held X% of the GPU-seconds of a static
+  two-replica fleet at Y points of goodput difference. Print the cold-window row next to this.
+- The policy scales real vLLM engines, drains them, reaches zero and serves the first request.
+
+Not allowed:
+
+- That autoscaling was measured on Kubernetes. Manifests and the Kubernetes adapter are checked
+  against a fake API server only; pods, probes and PriorityClass eviction are a separate step on kind.
+- That the invoice fell. The 2-GPU container is billed for the whole run. The saving is GPU-seconds an
+  engine held, priced at $3.03 per GPU-hour.
+- That spot reclaim was real. It is injected, in the shape of Modal's 30 s grace.
+- Anything about node provisioning or GPU scheduling. Nothing here exercises them.
+- Any number from one seed as a general result. C1 and C6 are two runs of one trace.
+
+## Environment
+
+- Modal, 2x RTX PRO 6000, $7.33/h for the container. App `<id>`, <start>Z to <end>Z, <minutes> min, <USD>.
+- vLLM 0.31.0, repo at `<GIT_SHA>` (from each cell's `env.json`), model `<sha>`.
+- Router: prefix_aware, tokenizer `<snapshot>`, block tokens <n>, caps 96 and 64, hold 2 x S and 900 s,
+  3 attempts, down 5 s.
+- Spec: `<spec.json from C1>`.
+
+## Protocol
+
+- Start cost: S_FIRST <s> s, S_RESTART <s> s, START_PAD_S <s> s (`probe.env`). Every start in a cell
+  sleeps the pad, so it costs what a first start in a fresh container costs. The pad counts as
+  GPU-seconds held. Warm cells start their engines without the pad, then pay it on any later start.
+- Probe checks: cancel <ok>, drain <ok>.
+- Trace: `trace.json`. Open loop, Poisson, 384 live ShareGPT sessions, one seed per cell, requests
+  identical across cells of a seed. History uses the dataset's answers, not the model's, so prefix
+  hits stop at the previous prompt. max_tokens is the dataset answer length in characters over 4.
+- Goodput: share of interactive requests with status 200, TTFT at or under 500 ms and TPOT at or under
+  40 ms, at the client, hold time included.
+
+## Deviations
+
+<Every place this run differs from the plan, and why. Cells rerun, cells skipped for budget, a resume
+in a new container (the first start there exceeds S), Modal preemptions.>
+
+## Results
+
+<summary.txt, the whole file.>
+
+| rule | text | C1 | C6 |
+|---|---|---|---|
+| P1 | the second replica is requested below 8.5 req/s of offered interactive load | | |
+| P2 | interactive goodput from backlog clear to t=585 is at least 95%, and at most 3 points below C2 | | |
+| P3 | GPU-seconds at most 0.75 of 2 x 1080 | | |
+| P4 | spike phase: C2 p90 TPOT at or under 40 ms, C4 above 40 ms | | |
+| P5 | cold window: every request completes, maximum wait at or under S + 15 s | | |
+| P6 | C3: `waiting` stays 0 while TPOT p90 exceeds 40 ms | | |
+| P7 | C5: no batch lost, no unstarted interactive lost, slot back within S + 15 s; truncations reported | | |
+| P8 | slot 1 takes at least 30% of requests within 60 s of READY | | |
+
+C6 must agree with C1 on the direction of every rule. A failed rule is published as a failed rule.
+
+## Findings
+
+<One paragraph per finding: what limits the number, whether both sides ran with production settings,
+errors and truncations, load generator lag, whether it reproduced in C6.>
+
+## Protocol problems
+
+<Anything that went wrong with the harness or Modal, what it cost, and the fix.>

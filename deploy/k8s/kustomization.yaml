@@ -1,0 +1,5 @@
+# The base lives in base/ because an overlay cannot sit below the base it builds on.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - base

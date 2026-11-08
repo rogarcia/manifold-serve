@@ -117,6 +117,22 @@ parse_serve_log() {
   echo "CUDAGRAPH_SIZES=${v:-}"
 }
 
+# Fills the array VLLM_ARGV with the vLLM command for one replica on PORT. KV_BYTES may be empty.
+vllm_argv() {
+  local port=$1 kv_bytes=${2:-}
+  # shellcheck disable=SC2086
+  VLLM_ARGV=(vllm serve "$MODEL" --revision "$MODEL_REVISION" --host 127.0.0.1 --port "$port"
+    --enable-prefix-caching
+    --max-model-len "$MAX_MODEL_LEN"
+    --max-num-batched-tokens "$MAX_NUM_BATCHED_TOKENS"
+    --max-num-seqs "$MAX_NUM_SEQS"
+    --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION"
+    ${kv_bytes:+--kv-cache-memory-bytes "$kv_bytes"}
+    --seed 0
+    --default-chat-template-kwargs "$CHAT_TEMPLATE_KWARGS"
+    $MODEL_FLAGS)
+}
+
 # Run CMD... with a wall-clock limit; returns 124 on timeout like coreutils timeout(1).
 with_timeout() {
   local secs=$1; shift

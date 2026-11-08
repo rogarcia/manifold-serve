@@ -43,18 +43,8 @@ start_replica() {
     launch "vllm-$r" "$logf" python -m manifold.sim --host 127.0.0.1 --port "$port" --model "$MODEL" \
       --block-tokens "$SIM_BLOCK_TOKENS" --kv-blocks "$KV_SIM_BLOCKS" --seed 0 $SIM_FLAGS
   else
-    # shellcheck disable=SC2086
-    launch "vllm-$r" "$logf" env CUDA_VISIBLE_DEVICES="$gpu" \
-      vllm serve "$MODEL" --revision "$MODEL_REVISION" --host 127.0.0.1 --port "$port" \
-      --enable-prefix-caching \
-      --max-model-len "$MAX_MODEL_LEN" \
-      --max-num-batched-tokens "$MAX_NUM_BATCHED_TOKENS" \
-      --max-num-seqs "$MAX_NUM_SEQS" \
-      --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
-      ${KV_BYTES:+--kv-cache-memory-bytes "$KV_BYTES"} \
-      --seed 0 \
-      --default-chat-template-kwargs "$CHAT_TEMPLATE_KWARGS" \
-      $MODEL_FLAGS
+    vllm_argv "$port" "$KV_BYTES"
+    launch "vllm-$r" "$logf" env CUDA_VISIBLE_DEVICES="$gpu" "${VLLM_ARGV[@]}"
   fi
   log "replica $r: log $logf"
   wait_http "http://localhost:$port/health" 1200 "vllm-$r" "$logf"

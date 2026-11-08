@@ -13,6 +13,7 @@ import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass, field
+from enum import Enum
 from typing import IO, Any
 
 import httpx
@@ -29,7 +30,8 @@ from prometheus_client import (
 from pydantic import BaseModel
 from starlette.types import Receive, Scope, Send
 
-from .policies import Decision, NoReplicaAvailable, RequestCtx, decide, make_policy
+from .gate import Caps, Gate, RequestClass, Shed, Ticket
+from .policies import Decision, RequestCtx, decide, make_policy
 from .prefix import PrefixIndex, block_hashes
 from .replicas import Replica, ReplicaState, scrape_forever
 from .tokenizer import BytesTokenizer, Tokenizer, make_tokenizer
@@ -49,6 +51,10 @@ class Config:
     scrape_ms: int = 100
     default_output_tokens: int = 256
     decision_log: str | None = None
+    initial_state: ReplicaState = ReplicaState.READY
+    caps: Caps = field(default_factory=Caps)
+    max_attempts: int = 1
+    down_s: float = 0.0
 
     @classmethod
     def from_env(cls, env: dict[str, str] | None = None) -> Config:
@@ -73,10 +79,19 @@ class Config:
             scrape_ms=int(env.get("MANIFOLD_SCRAPE_MS", "100")),
             default_output_tokens=int(env.get("MANIFOLD_DEFAULT_OUTPUT_TOKENS", "256")),
             decision_log=env.get("MANIFOLD_DECISION_LOG") or None,
+            initial_state=ReplicaState(env.get("MANIFOLD_INITIAL_STATE", "ready")),
+            caps=Caps(
+                interactive=float(env.get("MANIFOLD_CAP_INTERACTIVE", "inf")),
+                batch=float(env.get("MANIFOLD_CAP_BATCH", "inf")),
+                hold_interactive_s=float(env.get("MANIFOLD_HOLD_INTERACTIVE_S", "0")),
+                hold_batch_s=float(env.get("MANIFOLD_HOLD_BATCH_S", "0")),
+            ),
+            max_attempts=int(env.get("MANIFOLD_MAX_ATTEMPTS", "1")),
+            down_s=float(env.get("MANIFOLD_DOWN_S", "0")),
         )
         make_policy(cfg.policy)
-        if cfg.block_tokens < 1 or cfg.index_blocks < 1 or cfg.scrape_ms < 1:
-            raise ValueError("block, index and scrape sizes must be positive")
+        if min(cfg.block_tokens, cfg.index_blocks, cfg.scrape_ms, cfg.max_attempts) < 1:
+            raise ValueError("block, index, scrape and attempt counts must be positive")
         return cfg
 
 
@@ -104,9 +119,27 @@ class _Metrics:
             "manifold_router_overhead_seconds", "Receive to upstream send", registry=r,
             buckets=(0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0),
         )
+        self.demand = Gauge(
+            "manifold_router_demand_requests", "Requests held or in flight, per class",
+            ["class", "stage"], registry=r,
+        )
+        self.preemptions = Gauge(
+            "manifold_router_preemptions", "Batch requests preempted since start", registry=r,
+        )
+        self.replays = Counter(
+            "manifold_router_replays", "Requests sent again after no byte reached the client",
+            ["reason"], registry=r,
+        )
+        self.shed = Counter(
+            "manifold_router_shed", "Requests refused past the hold limit", ["class"], registry=r,
+        )
 
-    def render(self, replicas: list[Replica]) -> bytes:
+    def render(self, replicas: list[Replica], gate: Gate) -> bytes:
         now = time.time()
+        for cls, (held, in_flight) in gate.demand().items():
+            self.demand.labels(cls.value, "held").set(held)
+            self.demand.labels(cls.value, "in_flight").set(in_flight)
+        self.preemptions.set(gate.preemptions)
         for rep in replicas:
             self.inflight_tokens.labels(rep.url).set(rep.in_flight_tokens)
             self.inflight_requests.labels(rep.url).set(rep.in_flight_requests)
@@ -145,62 +178,130 @@ def _est_output_tokens(body: dict, default: int) -> int:
     return default
 
 
-class _ProxyResponse(Response):
-    """Streams the upstream reply through and owns the request's whole lifetime.
+def _error_body(message: str, kind: str) -> bytes:
+    return json.dumps({"error": {"message": message, "type": kind}}).encode()
 
-    In-flight accounting and the decision-log line live inside this ASGI call, so they are
-    released and written on every exit path, including client disconnects.
+
+class _Outcome(Enum):
+    DONE = "done"
+    PREEMPTED = "preempted"
+    FAILED = "failed"
+
+
+class _ProxyResponse(Response):
+    """Owns the request's whole lifetime: admission, attempts, streaming, accounting, logging.
+
+    The replay rule covers preemption and failure alike: a request is sent again if and only if
+    no byte reached the client. Everything is released on every exit path, including client
+    disconnects, because it all lives inside this ASGI call.
     """
 
-    def __init__(self, router: _Router, path: str, raw: bytes, ctx: RequestCtx,
-                 decision: Decision, t_received: float, auth: str | None):
-        self.router, self.path, self.raw, self.ctx = router, path, raw, ctx
-        self.decision, self.t_received, self.auth = decision, t_received, auth
+    def __init__(self, router: _Router, path: str, raw: bytes, ticket: Ticket, t_received: float,
+                 auth: str | None):
+        self.router, self.path, self.raw, self.ticket = router, path, raw, ticket
+        self.t_received, self.auth = t_received, auth
         self.background = None
+        self.status, self.error = 502, None
+        self.t_granted = self.t_sent = self.t_first = None
+        self.attempts = 0
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        rep = self.decision.chosen
-        status, error, started = 502, None, False
-        t_sent = t_first = None
-        headers = {"content-type": "application/json", "accept-encoding": "identity",
-                   "x-request-id": self.ctx.request_id}
-        if self.auth:
-            headers["authorization"] = self.auth
-        ours = [(b"x-manifold-backend", rep.url.encode()),
-                (b"x-manifold-request-id", self.ctx.request_id.encode())]
+        router, t, decision = self.router, self.ticket, None
+        failures, replay = 0, False
         try:
-            with rep.in_flight(self.ctx.load_tokens):
-                t_sent = time.time()
-                self.router.metrics.overhead.observe(t_sent - self.t_received)
-                async with self.router.client.stream(
-                    "POST", rep.url + self.path, content=self.raw, headers=headers
-                ) as up:
-                    ctype = up.headers.get("content-type", "application/json").encode()
-                    await send({"type": "http.response.start", "status": up.status_code,
-                                "headers": [(b"content-type", ctype), *ours]})
-                    started, status = True, up.status_code
-                    async for chunk in up.aiter_raw():
-                        if t_first is None:
-                            t_first = time.time()
-                        await send({"type": "http.response.body", "body": chunk,
-                                    "more_body": True})
-                    await send({"type": "http.response.body", "body": b"", "more_body": False})
-        except httpx.HTTPError as e:
-            error = f"{type(e).__name__}: {e}"
-            if not started:
-                body = json.dumps({"error": {"message": f"upstream {rep.url}: {error}",
-                                             "type": "upstream_error"}}).encode()
-                await send({"type": "http.response.start", "status": 502,
-                            "headers": [(b"content-type", b"application/json"), *ours]})
-                await send({"type": "http.response.body", "body": body})
-            else:
-                await send({"type": "http.response.body", "body": b"", "more_body": False})
+            while True:
+                try:
+                    decision = await router.gate.acquire(t, front=replay)
+                except Shed as e:
+                    self.status, self.error = e.status, str(e)
+                    router.metrics.shed.labels(t.cls.value).inc()
+                    await _send_error(send, e.status, _error_body(str(e), "overloaded"),
+                                      [(b"retry-after", str(e.retry_after_s).encode())])
+                    return
+                self.t_granted = time.time()
+                self.attempts += 1
+                outcome = await self._attempt(decision, send)
+                router.gate.release(t)
+                if outcome is _Outcome.DONE:
+                    return
+                if outcome is _Outcome.FAILED:
+                    failures += 1
+                    router.mark_down(decision.chosen)
+                    if t.started or failures >= router.config.max_attempts:
+                        await self._finish_failure(decision, send)
+                        return
+                router.metrics.replays.labels(outcome.value).inc()
+                replay = True
         except BaseException as e:
-            error = f"{type(e).__name__}: {e}"
+            self.error = f"{type(e).__name__}: {e}"
             raise
         finally:
-            self.router.log_decision(self.ctx, self.decision, self.t_received, t_sent, t_first,
-                                     status, error)
+            router.gate.release(t)
+            if decision is not None:
+                router.log_decision(self, decision)
+
+    async def _attempt(self, decision: Decision, send: Send) -> _Outcome:
+        t = self.ticket
+        t.task = asyncio.create_task(self._forward(decision.chosen, send))
+        try:
+            return await t.task
+        except asyncio.CancelledError:
+            if t.preempted:
+                return _Outcome.PREEMPTED
+            t.task.cancel()
+            raise
+        finally:
+            t.task = None
+
+    async def _forward(self, rep: Replica, send: Send) -> _Outcome:
+        t = self.ticket
+        headers = {"content-type": "application/json", "accept-encoding": "identity",
+                   "x-request-id": t.ctx.request_id}
+        if self.auth:
+            headers["authorization"] = self.auth
+        self.t_sent = time.time()
+        self.router.metrics.overhead.observe(self.t_sent - self.t_granted)
+        try:
+            async with self.router.client.stream(
+                "POST", rep.url + self.path, content=self.raw, headers=headers
+            ) as up:
+                ctype = up.headers.get("content-type", "application/json").encode()
+                t.started = True
+                await send({"type": "http.response.start", "status": up.status_code,
+                            "headers": [(b"content-type", ctype), *self._ours(rep)]})
+                self.status = up.status_code
+                async for chunk in up.aiter_raw():
+                    if self.t_first is None:
+                        self.t_first = time.time()
+                    await send({"type": "http.response.body", "body": chunk, "more_body": True})
+                await send({"type": "http.response.body", "body": b"", "more_body": False})
+        except httpx.HTTPError as e:
+            self.error = f"{type(e).__name__}: {e}"
+            return _Outcome.FAILED
+        self.error = None
+        return _Outcome.DONE
+
+    def _ours(self, rep: Replica) -> list[tuple[bytes, bytes]]:
+        return [(b"x-manifold-backend", rep.url.encode()),
+                (b"x-manifold-request-id", self.ticket.ctx.request_id.encode())]
+
+    async def _finish_failure(self, decision: Decision, send: Send) -> None:
+        if not self.ticket.started:
+            msg = f"upstream {decision.chosen.url}: {self.error}"
+            await _send_error(send, 502, _error_body(msg, "upstream_error"),
+                              self._ours(decision.chosen))
+            return
+        # The client already holds a 200 stream, so the failure has to travel inside it.
+        event = b"data: " + _error_body(f"upstream lost: {self.error}", "truncated") + b"\n\n"
+        await send({"type": "http.response.body", "body": event, "more_body": True})
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+
+async def _send_error(send: Send, status: int, body: bytes,
+                      headers: list[tuple[bytes, bytes]]) -> None:
+    await send({"type": "http.response.start", "status": status,
+                "headers": [(b"content-type", b"application/json"), *headers]})
+    await send({"type": "http.response.body", "body": body})
 
 
 class _Router:
@@ -212,6 +313,9 @@ class _Router:
         self.policy = make_policy(config.policy, config.spill_factor)
         self.tokenizer: Tokenizer = make_tokenizer(config.tokenizer)
         self.metrics = _Metrics()
+        for r in self.replicas:
+            r.state = config.initial_state
+        self.gate = Gate(self.replicas, config.caps, self.pick)
         self.client: httpx.AsyncClient
         self.log: _DecisionLog
 
@@ -230,12 +334,25 @@ class _Router:
             return call[0](*call[1:])
         return await asyncio.to_thread(*call)
 
-    def log_decision(self, ctx: RequestCtx, d: Decision, t_received: float,
-                     t_sent: float | None, t_first: float | None, status: int,
-                     error: str | None) -> None:
+    def pick(self, ctx: RequestCtx, cands: list[Replica]) -> Decision:
+        decision = decide(self.policy, ctx, cands, self.index)
+        self.index.record(decision.chosen.index, ctx.block_hashes)
+        self.metrics.decisions.labels(
+            self.policy.name, decision.chosen.url, str(decision.spilled).lower()
+        ).inc()
+        return decision
+
+    def mark_down(self, rep: Replica) -> None:
+        if self.config.down_s > 0:
+            rep.down_until = time.monotonic() + self.config.down_s
+            asyncio.get_running_loop().call_later(self.config.down_s, self.gate.pump)
+
+    def log_decision(self, r: _ProxyResponse, d: Decision) -> None:
+        ctx = r.ticket.ctx
         self.log.write({
             "request_id": ctx.request_id,
             "session_id": ctx.session_id,
+            "class": r.ticket.cls.value,
             "policy": d.policy,
             "chosen": d.chosen.url,
             "replica_index": d.chosen.index,
@@ -244,12 +361,15 @@ class _Router:
             "total_blocks": len(ctx.block_hashes),
             "matched_blocks": d.matched_blocks,
             "scores": d.scores,
-            "t_received": t_received,
-            "t_sent": t_sent,
-            "t_first_byte": t_first,
+            "attempts": r.attempts,
+            "preemptions": r.ticket.preemptions,
+            "t_received": r.t_received,
+            "t_granted": r.t_granted,
+            "t_sent": r.t_sent,
+            "t_first_byte": r.t_first,
             "t_done": time.time(),
-            "status": status,
-            "error": error,
+            "status": r.status,
+            "error": r.error,
         })
 
     async def route(self, request: Request) -> Response:
@@ -261,6 +381,12 @@ class _Router:
             body = None
         if not isinstance(body, dict):
             return JSONResponse({"error": {"message": "body must be a JSON object"}}, 400)
+        try:
+            cls = RequestClass(request.headers.get("x-manifold-class", "interactive"))
+        except ValueError:
+            return JSONResponse({"error": {"message": "unknown x-manifold-class"}}, 400)
+        if cls is RequestClass.BATCH and body.get("stream"):
+            return JSONResponse({"error": {"message": "batch requests must not stream"}}, 400)
         tokens = await self.tokenize(body)
         ctx = RequestCtx(
             request_id=uuid.uuid4().hex,
@@ -269,15 +395,7 @@ class _Router:
             block_hashes=block_hashes(tokens, self.config.block_tokens),
             est_output_tokens=_est_output_tokens(body, self.config.default_output_tokens),
         )
-        try:
-            decision = decide(self.policy, ctx, self.replicas, self.index)
-        except NoReplicaAvailable as e:
-            return JSONResponse({"error": {"message": str(e)}}, 503)
-        self.index.record(decision.chosen.index, ctx.block_hashes)
-        self.metrics.decisions.labels(
-            self.policy.name, decision.chosen.url, str(decision.spilled).lower()
-        ).inc()
-        return _ProxyResponse(self, request.url.path, raw, ctx, decision, t_received,
+        return _ProxyResponse(self, request.url.path, raw, Ticket(ctx, cls), t_received,
                               request.headers.get("authorization"))
 
     async def passthrough(self, path: str) -> Response:
@@ -298,11 +416,17 @@ class _Router:
         rep.state = state
         if state is not ReplicaState.READY:
             self.index.forget(index)
+            self.gate.evict(rep)
+        if state is ReplicaState.OFF:
+            rep.scraped = None
+        self.gate.pump()
         return {"index": index, "url": rep.url, "state": state.value}
 
     def stats(self) -> dict:
         return {
             "policy": self.policy.name,
+            "demand": {c.value: {"held": h, "in_flight": f}
+                       for c, (h, f) in self.gate.demand().items()},
             "replicas": [
                 {
                     "index": r.index,
@@ -365,7 +489,7 @@ def create_app(config: Config, transport: httpx.AsyncBaseTransport | None = None
 
     @app.get("/metrics")
     async def metrics() -> Response:
-        return Response(router.metrics.render(router.replicas), media_type=CONTENT_TYPE_LATEST)
+        return Response(router.metrics.render(router.replicas, router.gate), media_type=CONTENT_TYPE_LATEST)
 
     @app.post("/admin/replicas/{index}/state")
     async def admin_state(index: int, body: _AdminState) -> dict:

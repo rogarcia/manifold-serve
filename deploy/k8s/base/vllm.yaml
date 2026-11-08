@@ -1,0 +1,184 @@
+# Publishing not-ready addresses gives each slot its DNS name before the loop marks it READY, so
+# the router's first connection never races record creation or a cached NXDOMAIN.
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: vllm
+  ports:
+    - name: http
+      port: 8000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vllm-core
+spec:
+  replicas: 0
+  serviceName: vllm
+  # Ordered mode blocks scale-down behind any unready pod, and the loop must always be able to
+  # remove a slot. Parallel still takes the highest ordinals.
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vllm
+      app.kubernetes.io/component: core
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vllm
+        app.kubernetes.io/component: core
+    spec:
+      priorityClassName: manifold-serving
+      automountServiceAccountToken: false
+      # preStop 5 s + vLLM --shutdown-timeout 25 s, with 5 s to spare before SIGKILL.
+      terminationGracePeriodSeconds: 35
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.31.0
+          args:
+            - --model
+            - Qwen/Qwen3.5-9B
+            - --language-model-only
+            - --default-chat-template-kwargs
+            - '{"enable_thinking": false}'
+            - --enable-prefix-caching
+            - --max-model-len
+            - "32768"
+            - --max-num-batched-tokens
+            - "8192"
+            - --gpu-memory-utilization
+            - "0.90"
+            - --seed
+            - "0"
+            - --shutdown-timeout
+            - "25"
+          ports:
+            - name: http
+              containerPort: 8000
+          resources:
+            requests:
+              cpu: "4"
+              memory: 32Gi
+            limits:
+              memory: 32Gi
+              nvidia.com/gpu: 1
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: [sleep, "5"]
+          volumeMounts:
+            - name: hf-cache
+              mountPath: /root/.cache/huggingface
+  volumeClaimTemplates:
+    - metadata:
+        name: hf-cache
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 50Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vllm-burst
+spec:
+  replicas: 0
+  serviceName: vllm
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vllm
+      app.kubernetes.io/component: burst
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vllm
+        app.kubernetes.io/component: burst
+    spec:
+      priorityClassName: manifold-burst
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 35
+      tolerations:
+        - key: manifold.io/spot
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:v0.31.0
+          args:
+            - --model
+            - Qwen/Qwen3.5-9B
+            - --language-model-only
+            - --default-chat-template-kwargs
+            - '{"enable_thinking": false}'
+            - --enable-prefix-caching
+            - --max-model-len
+            - "32768"
+            - --max-num-batched-tokens
+            - "8192"
+            - --gpu-memory-utilization
+            - "0.90"
+            - --seed
+            - "0"
+            - --shutdown-timeout
+            - "25"
+          ports:
+            - name: http
+              containerPort: 8000
+          resources:
+            requests:
+              cpu: "4"
+              memory: 32Gi
+            limits:
+              memory: 32Gi
+              nvidia.com/gpu: 1
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: [sleep, "5"]
+          volumeMounts:
+            - name: hf-cache
+              mountPath: /root/.cache/huggingface
+  volumeClaimTemplates:
+    - metadata:
+        name: hf-cache
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 50Gi

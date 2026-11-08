@@ -1,0 +1,23 @@
+{
+  "main": {
+    "phases": [
+      {"t0": 0, "t1": 45, "rps0": 0, "rps1": 0, "exercises": "zero"},
+      {"t0": 45, "t1": 165, "rps0": 3, "rps1": 3, "exercises": "first request, cold start, backlog"},
+      {"t0": 165, "t1": 525, "rps0": 3, "rps1": 13, "exercises": "scale-up before the knee"},
+      {"t0": 525, "t1": 585, "rps0": 13, "rps1": 13, "exercises": "two replicas"},
+      {"t0": 585, "t1": 645, "rps0": 24, "rps1": 24, "exercises": "hold, preempt"},
+      {"t0": 645, "t1": 780, "rps0": 3, "rps1": 3, "exercises": "scale-down"},
+      {"t0": 780, "t1": 960, "rps0": 0, "rps1": 0, "exercises": "zero"},
+      {"t0": 960, "t1": 1080, "rps0": 3, "rps1": 3, "exercises": "second cold start"}
+    ],
+    "batch": [{"t": 200, "n": 400}, {"t": 560, "n": 300}],
+    "windows": {"static": [105, 645]}
+  },
+  "reclaim": {
+    "phases": [
+      {"t0": 0, "t1": 330, "rps0": 10, "rps1": 10, "exercises": "reclaim at t=60, slot back"}
+    ],
+    "batch": [{"t": 50, "n": 200}],
+    "windows": {}
+  }
+}

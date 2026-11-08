@@ -1,0 +1,16 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: manifold-serving
+value: 100000
+description: Slot 0, the router and the autoscaler. May evict burst pods.
+---
+# Positive on purpose: the cluster autoscaler by default ignores pending pods below priority -10,
+# so a negative value could stop burst pods from ever getting a node.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: manifold-burst
+value: 1000
+preemptionPolicy: Never
+description: Slots 1 and up. Spot-tolerant, first to go, never evicts anything.

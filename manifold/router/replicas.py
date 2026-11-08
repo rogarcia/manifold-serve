@@ -5,8 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections.abc import Iterator
-from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 
@@ -20,6 +18,7 @@ class ReplicaState(str, Enum):
     READY = "ready"
     DRAINING = "draining"
     SLEEPING = "sleeping"
+    OFF = "off"
 
 
 @dataclass(frozen=True)
@@ -40,16 +39,15 @@ class Replica:
     in_flight_tokens: int = 0
     in_flight_requests: int = 0
     scraped: EngineGauges | None = None
+    down_until: float = 0.0
 
-    @contextmanager
-    def in_flight(self, tokens: int) -> Iterator[None]:
+    def take(self, tokens: int) -> None:
         self.in_flight_tokens += tokens
         self.in_flight_requests += 1
-        try:
-            yield
-        finally:
-            self.in_flight_tokens -= tokens
-            self.in_flight_requests -= 1
+
+    def give_back(self, tokens: int) -> None:
+        self.in_flight_tokens -= tokens
+        self.in_flight_requests -= 1
 
 
 _SUMMED = {
@@ -84,10 +82,11 @@ def parse_vllm_metrics(text: str, ts: float | None = None) -> EngineGauges:
 async def scrape_forever(client: httpx.AsyncClient, replica: Replica, period_s: float) -> None:
     """Keeps the last good gauges on failure; the scrape-age metric shows the staleness."""
     while True:
-        try:
-            resp = await client.get(f"{replica.url}/metrics", timeout=max(period_s * 10, 1.0))
-            resp.raise_for_status()
-            replica.scraped = parse_vllm_metrics(resp.text)
-        except (httpx.HTTPError, ValueError) as e:
-            log.debug("scrape %s failed: %r", replica.url, e)
+        if replica.state is not ReplicaState.OFF:
+            try:
+                resp = await client.get(f"{replica.url}/metrics", timeout=max(period_s * 10, 1.0))
+                resp.raise_for_status()
+                replica.scraped = parse_vllm_metrics(resp.text)
+            except (httpx.HTTPError, ValueError) as e:
+                log.debug("scrape %s failed: %r", replica.url, e)
         await asyncio.sleep(period_s)

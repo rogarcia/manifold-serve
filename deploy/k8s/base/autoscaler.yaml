@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autoscaler
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: autoscaler
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: autoscaler
+    spec:
+      priorityClassName: manifold-serving
+      serviceAccountName: autoscaler
+      containers:
+        - name: autoscaler
+          image: manifold-serve:dev
+          command: [python, -m, manifold.autoscaler]
+          env:
+            - name: MANIFOLD_FLEET
+              value: kube
+            - name: MANIFOLD_ROUTER_URL
+              value: http://router.manifold.svc.cluster.local:8000
+            - name: MANIFOLD_SPEC
+              value: '{"max_replicas": 2}'
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
