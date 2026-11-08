@@ -108,7 +108,13 @@ Copy the results from the Volume. `bench/m2/results/` is ignored by git.
     uv run --no-sync modal volume get --force manifold-m1 m2/probe.env bench/m2/results/
     cd bench/m2 && ../../.venv/bin/python summarize.py "results/$RUN"
 
-Write the run up from `runs.md.template` as `runs-<date>.md`. A cell directory holds `requests.jsonl`,
+To run one finished cell again, remove its `DONE` on the Volume and resume the run with a short cap.
+The probe is reused. Keep the old cell's local copy under another name first.
+
+    uv run --no-sync modal volume rm manifold-m1 "m2/results/$RUN/c5-reclaim/DONE"
+    bench/m2/modal-run.sh "$RUN" 15
+
+Write the run up from `runs.md.template` as `runs-<date>.md`. The first one is `runs-2026-11-08.md`. A cell directory holds `requests.jsonl`,
 `requests.meta.json`, `ticks.jsonl`, `decisions.jsonl`, `samples.tsv` (1 Hz `waiting` and `running`),
 `events.jsonl`, `spec.json`, `env.json`, the router, autoscaler and engine logs.
 
