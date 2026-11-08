@@ -191,6 +191,8 @@ async def test_a_5xx_before_any_byte_is_retried_on_another_replica(router):
     assert resp.headers["x-manifold-backend"] == SIM_A
     [log] = r.decisions()
     assert log["attempts"] == 2 and log["status"] == 200
+    replicas = r.app.state.router.replicas
+    assert all(rep.down_until == 0.0 for rep in replicas), "a 5xx does not mark a replica down"
 
 
 async def test_a_stream_that_dies_after_bytes_ends_with_an_error_event(router, monkeypatch):

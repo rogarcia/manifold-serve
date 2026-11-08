@@ -186,6 +186,7 @@ class _Outcome(Enum):
     DONE = "done"
     PREEMPTED = "preempted"
     FAILED = "failed"
+    REFUSED = "refused"
 
 
 class _ProxyResponse(Response):
@@ -224,9 +225,10 @@ class _ProxyResponse(Response):
                 router.gate.release(t)
                 if outcome is _Outcome.DONE:
                     return
-                if outcome is _Outcome.FAILED:
+                if outcome in (_Outcome.FAILED, _Outcome.REFUSED):
                     failures += 1
-                    router.mark_down(decision.chosen)
+                    if outcome is _Outcome.FAILED:
+                        router.mark_down(decision.chosen)
                     if t.started or failures >= router.config.max_attempts:
                         await self._finish_failure(decision, send)
                         return
@@ -265,10 +267,11 @@ class _ProxyResponse(Response):
             async with self.router.client.stream(
                 "POST", rep.url + self.path, content=self.raw, headers=headers
             ) as up:
-                if up.status_code >= 500:  # vLLM refuses new work this way while it shuts down
+                if up.status_code >= 500:  # vLLM refuses new work this way while it shuts down.
+                    # Not marked down: one request that crashes the engine must not take a replica out.
                     body = (await up.aread())[:200].decode(errors="replace")
                     self.error = f"HTTP {up.status_code}: {body}"
-                    return _Outcome.FAILED
+                    return _Outcome.REFUSED
                 ctype = up.headers.get("content-type", "application/json").encode()
                 t.started = True
                 await send({"type": "http.response.start", "status": up.status_code,
