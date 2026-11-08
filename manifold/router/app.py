@@ -265,6 +265,10 @@ class _ProxyResponse(Response):
             async with self.router.client.stream(
                 "POST", rep.url + self.path, content=self.raw, headers=headers
             ) as up:
+                if up.status_code >= 500:  # vLLM refuses new work this way while it shuts down
+                    body = (await up.aread())[:200].decode(errors="replace")
+                    self.error = f"HTTP {up.status_code}: {body}"
+                    return _Outcome.FAILED
                 ctype = up.headers.get("content-type", "application/json").encode()
                 t.started = True
                 await send({"type": "http.response.start", "status": up.status_code,

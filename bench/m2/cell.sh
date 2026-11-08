@@ -64,10 +64,10 @@ trap cleanup EXIT
 stop_all
 fresh_run_dir
 ulimit -n 8192 2>/dev/null || true
-require_free_port "$ROUTER_PORT"
+wait_free_port "$ROUTER_PORT"
 BACKENDS=""
 for (( i = 0; i < SLOTS; i++ )); do
-  require_free_port "${SLOT_PORTS[$i]}"
+  wait_free_port "${SLOT_PORTS[$i]}"
   BACKENDS+="${BACKENDS:+,}$(slot_url "$i")"
 done
 

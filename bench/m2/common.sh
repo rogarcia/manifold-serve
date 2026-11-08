@@ -26,6 +26,15 @@ with open(logf, "ab") as log:
 EOF
 }
 
+# The previous cell's router can take a few seconds to let go of its port after SIGKILL.
+wait_free_port() {
+  local t0=$SECONDS
+  until curl -s -o /dev/null --max-time 2 "http://127.0.0.1:$1/"; [ $? = 7 ]; do
+    (( SECONDS - t0 < 30 )) || die "port $1 is still in use after 30 s"
+    sleep 1
+  done
+}
+
 group_alive() { kill -0 -- "-$1" 2>/dev/null; }
 
 stop_slot() {

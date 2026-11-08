@@ -170,6 +170,29 @@ async def test_a_dead_replica_is_retried_before_any_byte_reached_the_client(rout
     assert log["attempts"] == 2 and log["status"] == 200 and log["error"] is None
 
 
+async def test_a_5xx_before_any_byte_is_retried_on_another_replica(router):
+    class ShuttingDown(httpx.AsyncBaseTransport):
+        def __init__(self, inner):
+            self.inner = inner
+
+        async def handle_async_request(self, request):
+            if request.url.host == "shutting" and request.url.path.endswith("/completions"):
+                return httpx.Response(500, text="cannot schedule new futures after shutdown")
+            if request.url.host == "shutting":
+                return httpx.Response(200, text="")
+            return await self.inner.handle_async_request(request)
+
+    r = await router(backends=("http://shutting", SIM_A), policy="round_robin", max_attempts=2,
+                     down_s=5, caps=HOLD)
+    client = r.app.state.router.client
+    client._transport = ShuttingDown(client._transport)
+    resp = await r.post(CHAT, BATCH)
+    assert resp.status_code == 200
+    assert resp.headers["x-manifold-backend"] == SIM_A
+    [log] = r.decisions()
+    assert log["attempts"] == 2 and log["status"] == 200
+
+
 async def test_a_stream_that_dies_after_bytes_ends_with_an_error_event(router, monkeypatch):
     class DiesMidStream(httpx.AsyncByteStream):
         async def __aiter__(self):
